@@ -28,7 +28,7 @@ jobs:
         env:
             NODE_OPTIONS: --openssl-legacy-provider
       - name: upload ui artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ui
           path: ui/build
@@ -75,7 +75,7 @@ jobs:
       - name: check path
         run: ls -al target/
       - name: upload armhf artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: armhf-bin
           path: target/armv7-unknown-linux-gnueabihf/release/dim
@@ -123,7 +123,7 @@ jobs:
       - name: check path
         run: ls -al target/
       - name: upload aarch64 artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: aarch64-bin
           path: target/aarch64-unknown-linux-gnu/release/dim
@@ -165,7 +165,7 @@ jobs:
       - name: check path
         run: ls -al target/
       - name: upload amd64 artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: amd64-bin
           path: target/x86_64-unknown-linux-gnu/release/dim
