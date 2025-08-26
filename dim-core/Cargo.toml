@@ -57,7 +57,7 @@ reqwest = { version = "0.11.0", features = [
     "brotli",
 ], default-features = false }
 rusqlite = { version = "0.27.0", features = ["hooks"] }
-rust-embed = "^5.9.0"
+rust-embed = "^8.7.2"
 sqlx = { version = "0.5", features = ["runtime-tokio-rustls"] }
 thiserror = "1.0.30"
 tokio = { version = "1", features = ["rt", "signal", "full", "tracing"] }
