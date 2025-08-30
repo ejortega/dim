@@ -58,6 +58,12 @@ pub struct ReactorCore {
     recvr: UnboundedReceiver<Event>,
 }
 
+impl Default for ReactorCore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ReactorCore {
     pub fn new() -> Self {
         let (tx, rx) = unbounded_channel();
@@ -146,7 +152,7 @@ impl ReactorCore {
             let buffer_len = buffer.len();
 
             while let Some(event) = buffer.pop() {
-                if let Err(_) = context.tx.send(event) {
+                if context.tx.send(event).is_err() {
                     error!("Failed to send database event.");
                 }
             }

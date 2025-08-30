@@ -1,8 +1,7 @@
 pub mod ffprobe;
 
-use cfg_if::cfg_if;
-
 use std::collections::HashMap;
+use std::fmt;
 use std::sync::Arc;
 use std::sync::RwLock;
 
@@ -12,14 +11,10 @@ lazy_static::lazy_static! {
     pub static ref STREAMING_SESSION: Arc<RwLock<HashMap<String, HashMap<String, String>>>> = Arc::new(RwLock::new(HashMap::new()));
     pub static ref FFMPEG_BIN: &'static str = Box::leak(ffpath("utils/ffmpeg").into_boxed_str());
     pub static ref FFPROBE_BIN: &'static str = {
-        cfg_if! {
-            if #[cfg(test)] {
-                "/usr/bin/ffprobe"
-            } else if #[cfg(bench)] {
-                "/usr/bin/ffprobe"
-            } else {
-                Box::leak(ffpath("utils/ffprobe").into_boxed_str())
-            }
+        if cfg!(any(test, feature = "bench")) {
+            "/usr/bin/ffprobe"
+        } else {
+            Box::leak(ffpath("utils/ffprobe").into_boxed_str())
         }
     };
 }
@@ -94,9 +89,11 @@ pub struct Avc1Level {
     pub max_bitrate: u64,
 }
 
-impl ToString for Avc1Level {
-    fn to_string(&self) -> String {
-        format!("avc1.6400{:x}", self.level)
+impl fmt::Display for Avc1Level {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // RFC 6381-style codec string: avc1.<profile><compat><level>
+        // Common for High profile is 0x64 0x00 <level>. Pad level to 2 hex digits.
+        write!(f, "avc1.6400{:02X}", self.level)
     }
 }
 

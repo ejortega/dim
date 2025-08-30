@@ -11,17 +11,18 @@ dim-events = { path = "../dim-events" }
 dim-extern-api = { path = "../dim-extern-api" }
 dim-web = { path = "../dim-web" }
 dim-utils = { path = "../dim-utils" }
-xtra = { version = "0.5.1", features = ["tokio", "with-tokio-1"] }
-fdlimit = "0.2.1"
 
 # git dependencies
-nightfall = { git = "https://github.com/Dusk-Labs/nightfall", tag = "0.3.12-rc4", default-features = false, features = [
+nightfall = { git = "https://github.com/ejortega/nightfall", default-features = false, features = [
     "cuda",
     "ssa_transmux",
 ] }
+
+clap = { version = "4.5.46", features = ["derive", "env"] }
+xtra = { version = "0.6.0", features = ["tokio", "macros"] }
+fdlimit = "0.3.0"
 tracing = "0.1.40"
-tokio = { version = "1.33.0", features = ["full"] }
-clap = { version = "4.4.7", features = ["derive", "env"] }
+tokio = { version = "1.47.1", features = ["full"] }
 
 [features]
 vaapi = ["nightfall/vaapi"]

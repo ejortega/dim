@@ -14,6 +14,12 @@ pub enum Entry<T> {
     File(T),
 }
 
+impl<T> Default for Entry<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> Entry<T> {
     pub fn new() -> Self {
         Self::Directory {
@@ -51,7 +57,7 @@ impl<T> Entry<T> {
     /// Method inserts a value in the current entry by recursively scanning it based on the keys
     /// supplied. The supplied value will be associated with the last key in the collection of keys
     /// supplied.
-    pub fn insert<'a>(&mut self, mut keys: impl Iterator<Item = impl AsRef<str>>, value: T) {
+    pub fn insert(&mut self, mut keys: impl Iterator<Item = impl AsRef<str>>, value: T) {
         if self.is_file() {
             return;
         }
@@ -140,10 +146,7 @@ impl<T> Entry<T> {
 
     /// Method indicates whether the current entry is a file.
     fn is_file(&self) -> bool {
-        match self {
-            Self::File(_) => true,
-            _ => false,
-        }
+        matches!(self, Self::File(_))
     }
 }
 

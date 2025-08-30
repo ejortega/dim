@@ -1,7 +1,7 @@
 #![deny(warnings)]
 
 use serde::Serialize;
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt};
 
 /// Struct encompasses a message we are trying to relay to a client from somehwere within dim. It
 /// holds an id and a event_type field.
@@ -16,9 +16,15 @@ pub struct Message {
     pub event_type: PushEventType,
 }
 
-impl ToString for Message {
-    fn to_string(&self) -> String {
-        serde_json::to_string(&self).unwrap()
+impl fmt::Display for Message
+where
+    Message: serde::Serialize,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match serde_json::to_string(self) {
+            Ok(s) => f.write_str(&s),
+            Err(_) => Err(fmt::Error),
+        }
     }
 }
 

@@ -1,11 +1,11 @@
-use axum::Extension;
+use crate::AppState;
 use axum::extract::Path;
 use axum::extract::Query;
 use axum::extract::State;
 use axum::response::IntoResponse;
 use axum::response::Json;
 use axum::response::Response;
-use crate::AppState;
+use axum::Extension;
 use dim_core::core::StateManager;
 use dim_core::errors;
 use dim_core::stream_tracking::ContentType;
@@ -23,6 +23,7 @@ use dim_database::user::DefaultVideoQuality;
 use dim_database::user::User;
 use dim_database::user::UserSettings;
 
+use futures::TryFutureExt;
 use nightfall::error::NightfallError;
 use nightfall::profiles::*;
 
@@ -39,10 +40,9 @@ use tokio::fs::File;
 use serde::Deserialize;
 use serde_json::json;
 
-use uuid::Uuid;
 use http::header;
 use http::StatusCode;
-
+use uuid::Uuid;
 
 #[derive(Deserialize)]
 pub struct VirtualManifestParams {
@@ -54,7 +54,12 @@ pub struct VirtualManifestParams {
 /// Method mapped to `GET /api/v1/stream/<id>/manifest?<gid>` returns or creates a virtual
 /// manifest.
 pub async fn return_virtual_manifest(
-    State(AppState { conn, state, stream_tracking, .. }): State<AppState>,
+    State(AppState {
+        conn,
+        state,
+        stream_tracking,
+        ..
+    }): State<AppState>,
     Path(id): Path<i64>,
     Query(params): Query<VirtualManifestParams>,
     Extension(user): Extension<User>,
@@ -64,7 +69,8 @@ pub async fn return_virtual_manifest(
         return Ok(Json(&json!({
             "tracks": stream_tracking.get_for_gid(&gid).await,
             "gid": gid.as_hyphenated().to_string(),
-        })).into_response());
+        }))
+        .into_response());
     }
 
     let mut tx = conn.read().begin().await?;
@@ -110,14 +116,23 @@ pub async fn return_virtual_manifest(
     )
     .await?;
     create_audio(&info, &media, &stream_tracking, &gid, &state).await?;
-    create_subtitles(&info, &media, &stream_tracking, &gid, &state, params.force_ass).await?;
+    create_subtitles(
+        &info,
+        &media,
+        &stream_tracking,
+        &gid,
+        &state,
+        params.force_ass,
+    )
+    .await?;
 
     stream_tracking.generate_sids(&gid).await;
 
     Ok(Json(&json!({
         "tracks": stream_tracking.get_for_gid(&gid).await,
         "gid": gid.as_hyphenated().to_string(),
-    })).into_response())
+    }))
+    .into_response())
 }
 
 pub async fn try_create_dstream(
@@ -158,10 +173,10 @@ pub async fn try_create_dstream(
         // FIXME: Stop hardcoding a fps of 24
         let video_avc = video_stream
             .level
-            .and_then(|x| level_to_tag(x))
+            .and_then(level_to_tag)
             .unwrap_or(get_avc1_tag(
-                video_stream.width.clone().unwrap_or(1920) as u64,
-                video_stream.height.clone().unwrap_or(1080) as u64,
+                video_stream.width.unwrap_or(1920) as u64,
+                video_stream.height.unwrap_or(1080) as u64,
                 video_stream
                     .get_bitrate()
                     .or(info.get_container_bitrate())
@@ -183,7 +198,7 @@ pub async fn try_create_dstream(
 
             format!(
                 "{}p@{}{} (Direct Play)",
-                video_stream.height.clone().unwrap(),
+                video_stream.height.unwrap(),
                 bitrate_norm,
                 ident
             )
@@ -198,12 +213,12 @@ pub async fn try_create_dstream(
                 .set_duration(info.get_duration())
                 .set_codecs(video_avc.to_string())
                 .set_bandwidth(bitrate)
-                .set_args([("height", video_stream.height.clone().unwrap())])
+                .set_args([("height", video_stream.height.unwrap())])
                 .set_is_default(!should_stream_default)
                 .set_target_duration(10)
                 .set_label(label);
 
-        stream_tracking.insert(&gid, virtual_manifest).await;
+        stream_tracking.insert(gid, virtual_manifest).await;
     }
 
     Ok(should_stream_default)
@@ -234,8 +249,7 @@ pub async fn create_video(
     for quality in qualities {
         let bitrate = video_stream
             .get_bitrate()
-            .or(Some(quality.bitrate))
-            .unwrap()
+            .unwrap_or(quality.bitrate)
             .min(quality.bitrate);
 
         let ctx = ProfileContext {
@@ -273,7 +287,7 @@ pub async fn create_video(
 
         let video_avc = video_stream
             .level
-            .and_then(|x| level_to_tag(x))
+            .and_then(level_to_tag)
             .unwrap_or(get_avc1_tag(
                 width as u64,
                 quality.height,
@@ -300,7 +314,7 @@ pub async fn create_video(
                 .set_is_default(should_be_default)
                 .set_label(label);
 
-        stream_tracking.insert(&gid, virtual_manifest).await;
+        stream_tracking.insert(gid, virtual_manifest).await;
         // we wan to default only the first stream.
         if should_be_default {
             should_stream_default = false;
@@ -363,7 +377,7 @@ pub async fn create_audio(
                 .set_label(label)
                 .set_lang(stream.get_language());
 
-        stream_tracking.insert(&gid, virtual_manifest).await;
+        stream_tracking.insert(gid, virtual_manifest).await;
     }
 
     Ok(())
@@ -435,7 +449,7 @@ pub async fn create_subtitles(
         let title = title.replace("&", "and"); // dash.js seems to note like when there are `&` within titles.
         let virtual_manifest = virtual_manifest.set_args([("title".to_string(), title)]);
 
-        stream_tracking.insert(&gid, virtual_manifest).await;
+        stream_tracking.insert(gid, virtual_manifest).await;
     }
 
     Ok(())
@@ -454,10 +468,14 @@ pub struct ManifestParams {
 /// # Query args
 /// * `start_num` - first chunk number
 /// * `should_kill` - indicates whether we should clean old streams up while compiling the
-/// manifest.
+///   manifest.
 /// * `includes` - ids of streams to include, comma separated.
 pub async fn return_manifest(
-    State(AppState { state, stream_tracking, .. }): State<AppState>,
+    State(AppState {
+        state,
+        stream_tracking,
+        ..
+    }): State<AppState>,
     Path(gid): Path<String>,
     Query(params): Query<ManifestParams>,
 ) -> Result<impl IntoResponse, errors::StreamingErrors> {
@@ -514,7 +532,7 @@ where
 
     loop {
         if ticks >= tick_limit {
-            return Err(NightfallError::ChunkNotDone.into());
+            return Err(NightfallError::ChunkNotDone);
         }
 
         let result = f().await;
@@ -540,10 +558,14 @@ pub struct InitParams {
 pub async fn get_init(
     State(AppState { state, .. }): State<AppState>,
     Path(id): Path<String>,
-    Query(params): Query<InitParams>
+    Query(params): Query<InitParams>,
 ) -> Result<impl IntoResponse, errors::StreamingErrors> {
     let path: String = timeout_segment(
-        || state.chunk_init_request(id.clone(), params.start_num.unwrap_or(0)),
+        || {
+            state
+                .chunk_init_request(id.clone(), params.start_num.unwrap_or(0))
+                .map_err(|e| *e)
+        },
         Duration::from_millis(100),
         100,
     )
@@ -580,7 +602,7 @@ pub async fn get_chunk(
         .unwrap_or(0);
 
     let path: String = timeout_segment(
-        || state.chunk_request(id.clone(), chunk_num),
+        || state.chunk_request(id.clone(), chunk_num).map_err(|e| *e),
         Duration::from_millis(100),
         100,
     )
@@ -599,7 +621,7 @@ pub async fn get_subtitle(
     Path(id): Path<String>,
 ) -> Result<impl IntoResponse, errors::StreamingErrors> {
     let path: String = timeout_segment(
-        || state.get_sub(id.clone(), "stream".into()),
+        || state.get_sub(id.clone(), "stream".into()).map_err(|e| *e),
         Duration::from_millis(100),
         200,
     )
@@ -621,7 +643,10 @@ pub async fn get_subtitle_ass(
         || async {
             if state.has_started(id.clone()).await.unwrap_or(false) {
                 if state.is_done(id.clone()).await.unwrap_or(false) {
-                    return state.get_sub(id.clone(), "stream".into()).await;
+                    return state
+                        .get_sub(id.clone(), "stream".into())
+                        .await
+                        .map_err(|e| *e);
                 }
             } else {
                 let _ = state.start(id.clone()).await;
@@ -641,7 +666,11 @@ pub async fn get_subtitle_ass(
 /// client should hard seek in order to play the video at `chunk_num`. This is really only useful
 /// on web platforms.
 pub async fn should_client_hard_seek(
-    State(AppState { state, stream_tracking, .. }): State<AppState>,
+    State(AppState {
+        state,
+        stream_tracking,
+        ..
+    }): State<AppState>,
     Path((gid, chunk_num)): Path<(String, u32)>,
 ) -> Result<impl IntoResponse, errors::StreamingErrors> {
     let gid = match Uuid::parse_str(gid.as_str()) {
@@ -658,13 +687,18 @@ pub async fn should_client_hard_seek(
 
     Ok(Json(&json!({
         "should_client_seek": should_client_hard_seek,
-    })).into_response())
+    }))
+    .into_response())
 }
 
 /// Method mapped to `/api/v1/stream/<gid>/state/get_stderr` attempts to fetch and return the
 /// stderr logs of all ffmpeg streams for `gid`.
 pub async fn session_get_stderr(
-    State(AppState { state, stream_tracking, .. }): State<AppState>,
+    State(AppState {
+        state,
+        stream_tracking,
+        ..
+    }): State<AppState>,
     Path(gid): Path<String>,
 ) -> Result<impl IntoResponse, errors::StreamingErrors> {
     let gid = match Uuid::parse_str(gid.as_str()) {
@@ -677,12 +711,17 @@ pub async fn session_get_stderr(
         .await)
         .filter_map(|x| async { state.get_stderr(x.id).await.ok() })
         .collect::<Vec<_>>().await,
-    })).into_response())
+    }))
+    .into_response())
 }
 
 /// Method mapped to `/api/v1/stream/<gid>/state/kill` will kill all streams for `gid`.
 pub async fn kill_session(
-    State(AppState { state, stream_tracking, .. }): State<AppState>,
+    State(AppState {
+        state,
+        stream_tracking,
+        ..
+    }): State<AppState>,
     Path(gid): Path<String>,
 ) -> Result<impl IntoResponse, errors::StreamingErrors> {
     let gid = match Uuid::parse_str(gid.as_str()) {
@@ -696,8 +735,8 @@ pub async fn kill_session(
     Ok(StatusCode::NO_CONTENT)
 }
 
-use tokio::io::AsyncReadExt;
 use axum::body::Body;
+use tokio::io::AsyncReadExt;
 
 async fn reply_with_file(file: String, header: (&str, &str)) -> Response<Body> {
     if let Ok(mut file) = File::open(file).await {

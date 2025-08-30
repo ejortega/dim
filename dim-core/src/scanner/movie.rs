@@ -1,6 +1,5 @@
 #![allow(unstable_name_collisions)]
 
-use crate::inspect::ResultExt;
 use crate::scanner::format_path;
 use dim_extern_api::ExternalMedia;
 use dim_extern_api::ExternalQueryIntoShow;
@@ -191,23 +190,20 @@ impl MovieMatcher {
 
         // Sometimes we rematch against a media object that already exists but we are the last
         // child for the parent. When this happens we want to cleanup.
-        match file.media_id {
-            Some(old_id) => {
-                let count = Movie::count_children(tx, old_id)
-                    .await
-                    .inspect_err(|error| error!(?error, %old_id, "Failed to grab children count."))
-                    .map_err(Error::ChildrenCount)?;
+        if let Some(old_id) = file.media_id {
+            let count = Movie::count_children(tx, old_id)
+                .await
+                .inspect_err(|error| error!(?error, %old_id, "Failed to grab children count."))
+                .map_err(Error::ChildrenCount)?;
 
-                if count == 0 {
-                    Media::delete(tx, old_id)
-                        .await
-                        .inspect_err(
-                            |error| error!(?error, %old_id, "Failed to cleanup child-less parent."),
-                        )
-                        .map_err(Error::ChildCleanup)?;
-                }
+            if count == 0 {
+                Media::delete(tx, old_id)
+                    .await
+                    .inspect_err(
+                        |error| error!(?error, %old_id, "Failed to cleanup child-less parent."),
+                    )
+                    .map_err(Error::ChildCleanup)?;
             }
-            _ => {}
         }
 
         Ok(media_id)
@@ -242,13 +238,11 @@ impl MediaMatcher for MovieMatcher {
         let metadata = futures::future::join_all(metadata_futs).await;
 
         // FIXME: Propagate errors.
-        for meta in metadata.into_iter() {
-            if let Some((file, provided)) = meta {
-                if let Some(provided) = provided.first() {
-                    self.match_to_result(tx, file, provided.clone())
-                        .await
-                        .inspect_err(|error| error!(?error, "failed to match to result"))?;
-                }
+        for (file, provided) in metadata.into_iter().flatten() {
+            if let Some(provided) = provided.first() {
+                self.match_to_result(tx, file, provided.clone())
+                    .await
+                    .inspect_err(|error| error!(?error, "failed to match to result"))?;
             }
         }
 
