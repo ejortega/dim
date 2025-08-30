@@ -51,7 +51,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
       - name: Download webui
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v5
         with:
           name: ui
           path: ui/build
@@ -99,7 +99,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
       - name: Download webui
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v5
         with:
           name: ui
           path: ui/build
@@ -141,7 +141,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
       - name: Download webui
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v5
         with:
           name: ui
           path: ui/build
@@ -181,17 +181,17 @@ jobs:
       - name: fetch repo
         uses: actions/checkout@v3
       - name: Download armhf dim artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v5
         with:
           name: armhf-bin
           path: bin/armhf-bin
       - name: Download armhf dim artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v5
         with:
           name: aarch64-bin
           path: bin/aarch64-bin
       - name: Download amd64 dim artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v5
         with:
           name: amd64-bin
           path: bin/amd64-bin
