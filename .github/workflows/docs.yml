@@ -35,7 +35,7 @@ jobs:
           args: --verbose --workspace --release --no-deps
 
       - name: Deploy 🚀
-        uses: JamesIves/github-pages-deploy-action@v4.3.3
+        uses: JamesIves/github-pages-deploy-action@v4.7.3
         with:
           branch: docs
           folder: target/doc
