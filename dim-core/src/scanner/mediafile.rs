@@ -4,8 +4,6 @@ use crate::streaming::ffprobe::FFProbeCtx;
 use crate::streaming::FFPROBE_BIN;
 use dim_extern_api::filename::Metadata;
 
-use async_trait::async_trait;
-
 use dim_database::mediafile::InsertableMediaFile;
 use dim_database::mediafile::MediaFile;
 use dim_database::DatabaseError;
@@ -15,6 +13,7 @@ use displaydoc::Display;
 use serde::Serialize;
 use std::path::PathBuf;
 use std::sync::Arc;
+use xtra::Actor;
 
 use tokio::sync::Semaphore;
 use tokio::sync::SemaphorePermit;
@@ -26,7 +25,7 @@ use tracing::Instrument;
 
 use thiserror::Error;
 
-use xtra::prelude::*;
+use xtra::{Context, Handler};
 
 /// This semaphore is necessary so that we dont create too many instances of `MediafileCreator`.
 /// Having too many instances would not make sense as we can support only so many instances without
@@ -47,7 +46,7 @@ pub enum Error {
     /// File passed is non-unicode.
     NonUnicodeFile,
     /// Failed to extract media information with ffprobe: {0:?}
-    FfprobeError(#[serde(skip)] Arc<std::io::Error>),
+    Ffprobe(#[serde(skip)] Arc<std::io::Error>),
     /// Failed to write mediafile to the database: {0:?}
     InsertFailed(#[serde(skip)] DatabaseError),
     /// Failed to select written mediafile from the database: {0:?}
@@ -238,22 +237,31 @@ impl MediafileCreator {
     }
 }
 
-#[async_trait]
-impl Actor for MediafileCreator {}
-
 pub struct InsertBatch(pub Vec<InsertableMediaFile>);
 
-impl Message for InsertBatch {
-    type Result = Result<Vec<MediaFile>>;
+use async_trait::async_trait;
+use xtra::Mailbox;
+
+impl Actor for MediafileCreator {
+    type Stop = ();
+
+    async fn stopped(self) -> Self::Stop {}
+
+    async fn started(&mut self, _mailbox: &Mailbox<Self>) -> std::result::Result<(), Self::Stop> {
+        Ok(())
+    }
 }
 
 #[async_trait]
 impl Handler<InsertBatch> for MediafileCreator {
-    async fn handle(
+    type Return = Result<Vec<MediaFile>>;
+
+    fn handle(
         &mut self,
         batch: InsertBatch,
-        _: &mut Context<Self>,
-    ) -> <InsertBatch as Message>::Result {
-        self.insert_batch(batch.0.iter()).await
+        _ctx: &mut Context<Self>,
+    ) -> impl futures::Future<Output = <Self as xtra::Handler<InsertBatch>>::Return> + std::marker::Send
+    {
+        Box::pin(async move { self.insert_batch(batch.0.iter()).await })
     }
 }

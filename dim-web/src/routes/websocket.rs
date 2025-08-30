@@ -75,7 +75,7 @@ where
 
             CtrlEvent::SendAll(body) => {
                 for (addr, (sink, _)) in peers.iter_mut() {
-                    let result = sink.send(WsMessage::Text(body.to_owned())).await;
+                    let result = sink.send(WsMessage::Text(body.to_owned().into())).await;
 
                     if result.is_err() {
                         let _ = sink.close().await;
@@ -86,7 +86,7 @@ where
 
             CtrlEvent::SendTo { addr, message } => {
                 if let Some((sink, _)) = peers.get_mut(&addr) {
-                    let result = sink.send(WsMessage::Text(message.to_owned())).await;
+                    let result = sink.send(WsMessage::Text(message.to_owned().into())).await;
 
                     if result.is_err() {
                         let _ = sink.close().await;
@@ -138,20 +138,24 @@ pub async fn handle_websocket_session(
                         if let Ok(u) =
                             dim_database::user::User::get_by_id(&mut sql_tx, token_data).await
                         {
-                            let _ = socket_tx.send(CtrlEvent::Track {
-                                addr,
-                                sink: Box::pin(sink),
-                                auth: Box::new(u),
-                            }).await;
+                            let _ = socket_tx
+                                .send(CtrlEvent::Track {
+                                    addr,
+                                    sink: Box::pin(sink),
+                                    auth: Box::new(u),
+                                })
+                                .await;
 
-                            let _ = socket_tx.send(CtrlEvent::SendTo {
-                                addr,
-                                message: dim_events::Message {
-                                    id: -1,
-                                    event_type: dim_events::PushEventType::EventAuthOk,
-                                }
-                                .to_string(),
-                            }).await;
+                            let _ = socket_tx
+                                .send(CtrlEvent::SendTo {
+                                    addr,
+                                    message: dim_events::Message {
+                                        id: -1,
+                                        event_type: dim_events::PushEventType::EventAuthOk,
+                                    }
+                                    .to_string(),
+                                })
+                                .await;
 
                             break 'auth_loop;
                         }
@@ -159,28 +163,25 @@ pub async fn handle_websocket_session(
                 }
             }
 
-            let _ = socket_tx.send(CtrlEvent::SendTo {
-                addr,
-                message: dim_events::Message {
-                    id: -1,
-                    event_type: dim_events::PushEventType::EventAuthErr,
-                }
-                .to_string(),
-            }).await;
+            let _ = socket_tx
+                .send(CtrlEvent::SendTo {
+                    addr,
+                    message: dim_events::Message {
+                        id: -1,
+                        event_type: dim_events::PushEventType::EventAuthErr,
+                    }
+                    .to_string(),
+                })
+                .await;
         }
     }
 
-    loop {
-        tokio::select! {
-            biased;
-            _ = tokio::signal::ctrl_c() => {
-                break;
-            }
-
-            None = stream.next() => {
-                let _ = socket_tx.send(CtrlEvent::Forget { addr }).await;
-                break;
-            }
+    tokio::select! {
+        _ = tokio::signal::ctrl_c() => {}
+        _ = async {
+            while stream.next().await.is_some() {}
+        } => {
+            let _ = socket_tx.send(CtrlEvent::Forget { addr }).await;
         }
     }
 }

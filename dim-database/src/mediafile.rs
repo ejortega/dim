@@ -5,7 +5,7 @@ use crate::DatabaseError;
 use itertools::intersperse;
 use serde::Deserialize;
 use serde::Serialize;
-use std::iter::repeat;
+use std::iter::repeat_n;
 
 /// MediaFile struct which represents a media file on the filesystem. This struct holds some basic
 /// information which the video player on the front end might require.
@@ -74,7 +74,7 @@ impl MediaFile {
             "SELECT * FROM mediafile WHERE library_id = ?",
             library_id
         )
-        .fetch_all(&mut *conn)
+        .fetch_all(conn.as_mut())
         .await?)
     }
 
@@ -93,7 +93,7 @@ impl MediaFile {
             "SELECT * FROM mediafile WHERE library_id = ? AND media_id IS NULL",
             library_id
         )
-        .fetch_all(&mut *conn)
+        .fetch_all(conn.as_mut())
         .await?)
     }
 
@@ -113,7 +113,7 @@ impl MediaFile {
                 WHERE media.id = ?",
             media_id
         )
-        .fetch_all(&mut *conn)
+        .fetch_all(conn.as_mut())
         .await?)
     }
 
@@ -132,7 +132,7 @@ impl MediaFile {
                 GROUP BY mediafile.id",
             id
         )
-        .fetch_all(&mut *conn)
+        .fetch_all(conn.as_mut())
         .await?)
     }
 
@@ -147,7 +147,7 @@ impl MediaFile {
     ) -> Result<Self, DatabaseError> {
         Ok(
             sqlx::query_as!(MediaFile, "SELECT * FROM mediafile WHERE id = ?", id)
-                .fetch_one(&mut *conn)
+                .fetch_one(conn.as_mut())
                 .await?,
         )
     }
@@ -161,12 +161,12 @@ impl MediaFile {
         conn: &mut crate::Transaction<'_>,
         ids: &[i64],
     ) -> Result<Vec<Self>, DatabaseError> {
-        let placeholders = intersperse(repeat("?").take(ids.len()), ",").collect::<String>();
+        let placeholders = intersperse(repeat_n("?", ids.len()), ",").collect::<String>();
         let query = format!("SELECT * FROM mediafile WHERE id IN ({placeholders})");
 
         Ok(sqlx::query_as::<_, MediaFile>(&query)
             .bind_all(ids)
-            .fetch_all(&mut *conn)
+            .fetch_all(conn.as_mut())
             .await?)
     }
 
@@ -178,7 +178,7 @@ impl MediaFile {
     /// * `file` - string slice containing our filepath
     pub async fn exists_by_file(conn: &mut crate::Transaction<'_>, file: &str) -> bool {
         sqlx::query!("SELECT id FROM mediafile WHERE target_file = ?", file)
-            .fetch_one(&mut *conn)
+            .fetch_one(conn.as_mut())
             .await
             .is_ok()
     }
@@ -192,7 +192,7 @@ impl MediaFile {
             r#"SELECT * FROM mediafile WHERE target_file = ?"#,
             file
         )
-        .fetch_one(&mut *conn)
+        .fetch_one(conn.as_mut())
         .await?)
     }
 
@@ -208,7 +208,7 @@ impl MediaFile {
             LIMIT 1"#,
             media_id
         )
-        .fetch_one(&mut *conn)
+        .fetch_one(conn.as_mut())
         .await?
         .duration)
     }
@@ -223,7 +223,7 @@ impl MediaFile {
         id: i64,
     ) -> Result<usize, DatabaseError> {
         Ok(sqlx::query!("DELETE FROM mediafile WHERE id = ?", id)
-            .execute(&mut *conn)
+            .execute(conn.as_mut())
             .await?
             .rows_affected() as usize)
     }
@@ -236,7 +236,7 @@ impl MediaFile {
     ) -> Result<usize, DatabaseError> {
         Ok(
             sqlx::query!("DELETE FROM mediafile WHERE library_id = ?", lib_id)
-                .execute(&mut *conn)
+                .execute(conn.as_mut())
                 .await?
                 .rows_affected() as usize,
         )
@@ -279,7 +279,7 @@ impl InsertableMediaFile {
         let result: Option<i64> =
             sqlx::query_scalar("SELECT 1 FROM mediafile WHERE target_file = ?")
                 .bind(&self.target_file)
-                .fetch_optional(&mut *conn)
+                .fetch_optional(conn.as_mut())
                 .await?;
 
         Ok(result == Some(1))
@@ -314,7 +314,7 @@ impl InsertableMediaFile {
             self.profile,
             self.audio_language
         )
-        .execute(&mut *conn)
+        .execute(conn.as_mut())
         .await?
         .last_insert_rowid();
 
@@ -384,12 +384,12 @@ impl UpdateMediaFile {
     }
 }
 
-impl Into<Media> for MediaFile {
-    fn into(self) -> Media {
+impl From<MediaFile> for Media {
+    fn from(val: MediaFile) -> Self {
         Media {
-            id: self.id,
-            library_id: self.library_id,
-            name: self.raw_name,
+            id: val.id,
+            library_id: val.library_id,
+            name: val.raw_name,
             ..Default::default()
         }
     }

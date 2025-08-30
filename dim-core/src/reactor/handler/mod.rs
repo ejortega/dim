@@ -108,7 +108,11 @@ impl EventReactor {
         if let Some(remote_url) = remote_url {
             let path = PathBuf::from(local_path);
 
-            if let Some(local_file) = path.iter().last().map(|x| x.to_string_lossy().to_string()) {
+            if let Some(local_file) = path
+                .iter()
+                .next_back()
+                .map(|x| x.to_string_lossy().to_string())
+            {
                 crate::fetcher::insert_into_queue(remote_url, local_file, false).await;
             }
         }

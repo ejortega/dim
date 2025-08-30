@@ -6,18 +6,22 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-anitomy = "0.1.2"
+anitomy = "0.2.0"
 async-trait = "0.1.68"
 chrono = { version = "0.4.24", features = ["serde"] }
-dashmap = "5.4.0"
+dashmap = "6.1.0"
 displaydoc = "0.2.3"
-governor = "0.5.1"
-rand = { version = "0.8.5", features = ["small_rng"] }
-reqwest = { version = "0.11.0", features = ["json", "rustls-tls", "brotli"], default-features = false }
+governor = "0.10.1"
+rand = { version = "0.9.2", features = ["small_rng"] }
+reqwest = { version = "0.12.23", features = [
+    "json",
+    "rustls-tls",
+    "brotli",
+], default-features = false }
 retry-block = "1.0.0"
 serde = { version = "1.0.159", features = ["derive", "rc"] }
 serde_json = "1.0.95"
-thiserror = "1.0.40"
-tokio = { version = "1.27.0", features = ["sync", "rt"] }
+thiserror = "2.0.16"
+tokio = { version = "1.47.1", features = ["sync", "rt"] }
 torrent-name-parser = "0.12.0"
 tracing = "0.1.37"

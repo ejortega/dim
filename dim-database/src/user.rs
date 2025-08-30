@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::num::NonZeroU32;
 use std::time::SystemTime;
 
+use base64::{engine::general_purpose, Engine as _};
 use dim_auth::user_cookie_decode;
 use dim_auth::user_cookie_generate;
 use dim_auth::AuthError;
@@ -11,12 +12,15 @@ use serde::Serialize;
 
 use ring::digest;
 use ring::pbkdf2;
+use sqlx::encode::IsNull;
+use sqlx::error::BoxDynError;
+use sqlx::Database;
 use sqlx::Decode;
 use sqlx::Encode;
 
 static PBKDF2_ALG: pbkdf2::Algorithm = pbkdf2::PBKDF2_HMAC_SHA256;
 const CREDENTIAL_LEN: usize = digest::SHA256_OUTPUT_LEN;
-const HASH_ROUNDS: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(1_000) };
+const HASH_ROUNDS: NonZeroU32 = NonZeroU32::new(1_000).unwrap();
 
 pub type Credential = [u8; CREDENTIAL_LEN];
 
@@ -87,26 +91,23 @@ where
     }
 }
 
-impl<'r, DB: sqlx::Database> Decode<'r, DB> for UserSettings
+impl<'r, DB> Decode<'r, DB> for UserSettings
 where
+    DB: Database,
     &'r [u8]: Decode<'r, DB>,
 {
-    fn decode(
-        value: <DB as sqlx::database::HasValueRef<'r>>::ValueRef,
-    ) -> Result<Self, sqlx::error::BoxDynError> {
+    fn decode(value: <DB as Database>::ValueRef<'r>) -> Result<Self, BoxDynError> {
         let value = <&[u8] as Decode<DB>>::decode(value)?;
         Ok(serde_json::from_slice(value).unwrap_or_default())
     }
 }
 
-impl<'q, DB: sqlx::Database> Encode<'q, DB> for UserSettings
+impl<'q, DB> Encode<'q, DB> for UserSettings
 where
+    DB: Database,
     Vec<u8>: Encode<'q, DB>,
 {
-    fn encode_by_ref(
-        &self,
-        buf: &mut <DB as sqlx::database::HasArguments<'q>>::ArgumentBuffer,
-    ) -> sqlx::encode::IsNull {
+    fn encode_by_ref(&self, buf: &mut DB::ArgumentBuffer<'q>) -> Result<IsNull, BoxDynError> {
         let val = serde_json::to_vec(self).unwrap_or_default();
         <Vec<u8> as Encode<DB>>::encode(val, buf)
     }
@@ -153,28 +154,25 @@ where
     }
 }
 
-impl<'r, DB: sqlx::Database> Decode<'r, DB> for Roles
+impl<'r, DB> Decode<'r, DB> for Roles
 where
-    &'r str: Decode<'r, DB>,
+    DB: Database,
+    String: Decode<'r, DB>,
 {
-    fn decode(
-        value: <DB as sqlx::database::HasValueRef<'r>>::ValueRef,
-    ) -> Result<Self, sqlx::error::BoxDynError> {
-        let value = <&str as Decode<DB>>::decode(value)?;
-        Ok(serde_json::from_str(value).unwrap_or_default())
+    fn decode(value: <DB as Database>::ValueRef<'r>) -> Result<Self, BoxDynError> {
+        let s = <String as Decode<'r, DB>>::decode(value)?;
+        Ok(serde_json::from_str(&s)?)
     }
 }
 
-impl<'q, DB: sqlx::Database> Encode<'q, DB> for Roles
+impl<'q, DB> Encode<'q, DB> for Roles
 where
+    DB: Database,
     String: Encode<'q, DB>,
 {
-    fn encode_by_ref(
-        &self,
-        buf: &mut <DB as sqlx::database::HasArguments<'q>>::ArgumentBuffer,
-    ) -> sqlx::encode::IsNull {
-        let val = serde_json::to_string(self).unwrap_or_default();
-        <String as Encode<DB>>::encode(val, buf)
+    fn encode_by_ref(&self, buf: &mut DB::ArgumentBuffer<'q>) -> Result<IsNull, BoxDynError> {
+        let val = serde_json::to_string(self)?;
+        <String as Encode<'q, DB>>::encode(val, buf)
     }
 }
 
@@ -194,7 +192,7 @@ impl User {
             sqlx::query!(
                 r#"SELECT id as "id: UserID", username, roles as "roles: Roles", prefs as "prefs: UserSettings", picture FROM users"#
             )
-            .fetch_all(&mut *conn)
+            .fetch_all(conn.as_mut())
             .await?
             .into_iter()
             .map(|user| Self {
@@ -217,7 +215,7 @@ impl User {
                 WHERE id = ?"#,
             uid
         )
-        .fetch_one(&mut *conn)
+        .fetch_one(conn.as_mut())
         .await
         .map(|u| Self {
             id: u.id,
@@ -237,7 +235,7 @@ impl User {
                 WHERE username = ?"#,
             username
         )
-        .fetch_one(&mut *conn)
+        .fetch_one(conn.as_mut())
         .await
         .map(|u| Self {
             id: u.id,
@@ -264,7 +262,7 @@ impl User {
             uname,
             hash,
         )
-        .fetch_one(&mut *conn)
+        .fetch_one(conn.as_mut())
         .await?;
 
         Ok(Self {
@@ -285,7 +283,7 @@ impl User {
         conn: &mut crate::Transaction<'_>,
     ) -> Result<String, DatabaseError> {
         let pass = sqlx::query!("SELECT password FROM users WHERE id = ?", self.id,)
-            .fetch_one(&mut *conn)
+            .fetch_one(conn.as_mut())
             .await
             .map(|r| r.password)?;
 
@@ -302,7 +300,7 @@ impl User {
         uid: UserID,
     ) -> Result<usize, DatabaseError> {
         Ok(sqlx::query!("DELETE FROM users WHERE id = ?", uid)
-            .execute(&mut *conn)
+            .execute(conn.as_mut())
             .await?
             .rows_affected() as usize)
     }
@@ -324,7 +322,7 @@ impl User {
             hash,
             self.username
         )
-        .execute(&mut *conn)
+        .execute(conn.as_mut())
         .await?
         .rows_affected() as usize)
     }
@@ -339,7 +337,7 @@ impl User {
             new_username,
             old_username
         )
-        .execute(&mut *conn)
+        .execute(conn.as_mut())
         .await?
         .rows_affected() as usize)
     }
@@ -354,7 +352,7 @@ impl User {
             asset_id,
             uid
         )
-        .execute(&mut *conn)
+        .execute(conn.as_mut())
         .await?
         .rows_affected() as usize)
     }
@@ -399,7 +397,7 @@ impl InsertableUser {
             prefs,
             claimed_invite,
             roles
-        ).fetch_one(&mut *conn)
+        ).fetch_one(conn.as_mut())
         .await?;
         Ok(user)
     }
@@ -422,7 +420,7 @@ impl UpdateableUser {
                 prefs,
                 user
             )
-            .execute(&mut *conn)
+            .execute(conn.as_mut())
             .await?
             .rows_affected() as usize);
         }
@@ -457,7 +455,7 @@ impl Login {
                           AND id = ?",
             tok
         )
-        .fetch_optional(&mut *conn)
+        .fetch_optional(conn.as_mut())
         .await?
         .is_some())
     }
@@ -468,7 +466,7 @@ impl Login {
     ) -> Result<usize, DatabaseError> {
         if let Some(tok) = &self.invite_token {
             Ok(sqlx::query!("DELETE FROM invites WHERE id = ?", tok)
-                .execute(&mut *conn)
+                .execute(conn.as_mut())
                 .await?
                 .rows_affected() as usize)
         } else {
@@ -481,13 +479,13 @@ impl Login {
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap()
             .as_secs() as i64;
-        let token = uuid::Uuid::new_v4().to_hyphenated().to_string();
+        let token = uuid::Uuid::new_v4().hyphenated().to_string();
         let _ = sqlx::query!(
             "INSERT INTO invites (id, date_added) VALUES ($1, $2)",
             token,
             ts
         )
-        .execute(&mut *conn)
+        .execute(conn.as_mut())
         .await?;
 
         Ok(token)
@@ -497,7 +495,7 @@ impl Login {
         conn: &mut crate::Transaction<'_>,
     ) -> Result<Vec<String>, DatabaseError> {
         Ok(sqlx::query!("SELECT id from invites")
-            .fetch_all(&mut *conn)
+            .fetch_all(conn.as_mut())
             .await?
             .into_iter()
             .map(|t| t.id)
@@ -515,7 +513,7 @@ impl Login {
                 ) AND id = ?",
             token
         )
-        .execute(&mut *conn)
+        .execute(conn.as_mut())
         .await?
         .rows_affected() as usize)
     }
@@ -534,20 +532,20 @@ pub fn hash(salt: String, s: String) -> String {
     pbkdf2::derive(
         PBKDF2_ALG,
         HASH_ROUNDS,
-        &salt.as_bytes(),
+        salt.as_bytes(),
         s.as_bytes(),
         &mut to_store,
     );
-    base64::encode(&to_store)
+    general_purpose::URL_SAFE.encode(to_store)
 }
 
 pub fn verify(salt: String, password: String, attempted_password: String) -> bool {
-    let real_pwd = base64::decode(&password).unwrap();
+    let real_pwd = general_purpose::URL_SAFE.decode(&password).unwrap();
 
     pbkdf2::verify(
         PBKDF2_ALG,
         HASH_ROUNDS,
-        &salt.as_bytes(),
+        salt.as_bytes(),
         attempted_password.as_bytes(),
         real_pwd.as_slice(),
     )
