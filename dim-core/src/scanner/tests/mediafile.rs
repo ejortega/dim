@@ -11,15 +11,14 @@ use dim_database::mediafile::MediaFile;
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
 use itertools::Itertools;
+use xtra::spawn_tokio;
+use xtra::Mailbox;
 
 use std::future::Future;
 
 use core::pin::Pin;
 
 use futures::FutureExt;
-
-use xtra::spawn::Tokio;
-use xtra::Actor;
 
 pub(crate) async fn create_library(conn: &mut dim_database::DbConnection) -> i64 {
     let mut lock = conn.writer().lock_owned().await;
@@ -149,10 +148,8 @@ async fn test_multiple_instances() {
     let mut instances = vec![];
 
     for _ in 0..8 {
-        let addr = MediafileCreator::new(conn.clone(), library)
-            .await
-            .create(None)
-            .spawn(&mut Tokio::Global);
+        let pair = Mailbox::unbounded();
+        let addr = spawn_tokio(MediafileCreator::new(conn.clone(), library).await, pair);
         instances.push(addr);
     }
 

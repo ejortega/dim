@@ -15,7 +15,6 @@ use dim_core::errors;
 use dim_core::fetcher::insert_into_queue;
 use dim_database::asset;
 
-use rust_embed::EmbeddedFile;
 use rust_embed::RustEmbed;
 
 use std::path;
@@ -36,7 +35,7 @@ cfg_if::cfg_if! {
         pub struct Asset;
 
         impl RustEmbed for Asset {
-            fn get(_: &str) -> Option<EmbeddedFile> {
+            fn get(_: &str) -> Option<rust_embed::EmbeddedFile> {
                 None
             }
 
