@@ -28,7 +28,7 @@ jobs:
           rustup default stable
 
       - name: Build Docs
-        run: doc --verbose --workspace --release --no-deps
+        run: cargo doc --verbose --workspace --release --no-deps
 
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@v4.7.3
