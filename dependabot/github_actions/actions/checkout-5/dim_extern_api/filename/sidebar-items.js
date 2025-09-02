@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["Anitomy","CombinedExtractor","Metadata","TorrentMetadata"],"trait":["FilenameMetadata"]};
