@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3        
+        uses: actions/checkout@v5        
       - name: Build UI 
         uses: actions/setup-node@v3
         with:
@@ -49,7 +49,7 @@ jobs:
       - name: install runtime
         run: apt update && apt install -y pkg-config gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-armhf-cross libc6-dev-armhf-cross tar ca-certificates
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v5
       - name: Download webui
         uses: actions/download-artifact@v5
         with:
@@ -97,7 +97,7 @@ jobs:
       - name: install runtime
         run: apt update && apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-arm64-cross libc6-dev-arm64-cross libssl-dev:arm64
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v5
       - name: Download webui
         uses: actions/download-artifact@v5
         with:
@@ -139,7 +139,7 @@ jobs:
       - name: install runtime
         run: apt update && apt install -y gcc-x86-64-linux-gnu g++-x86-64-linux-gnu libc6-dev libssl-dev libva-dev libva-drm2 libva2
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v5
       - name: Download webui
         uses: actions/download-artifact@v5
         with:
@@ -179,7 +179,7 @@ jobs:
       packages: write
     steps:
       - name: fetch repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
       - name: Download armhf dim artifacts
         uses: actions/download-artifact@v5
         with:
