@@ -116,10 +116,26 @@ pub struct Cast {
     pub cast: Vec<CastActor>,
 }
 
+impl std::fmt::Display for Cast {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Cast {}: {:?}", self.id, self.cast)
+    }
+}
+
 #[derive(Deserialize, Debug)]
 pub struct TmdbError {
     pub status_message: String,
     pub status_code: u64,
+}
+
+impl std::fmt::Display for TmdbError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "TMDb error {}: {}",
+            self.status_code, self.status_message
+        )
+    }
 }
 
 #[derive(Deserialize, Debug)]
