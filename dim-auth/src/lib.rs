@@ -2,12 +2,14 @@ use aes_gcm::aead::generic_array::GenericArray;
 use aes_gcm::aead::Aead;
 use aes_gcm::AeadInPlace;
 use aes_gcm::Aes256Gcm;
-use aes_gcm::NewAead;
+use aes_gcm::KeyInit;
 
+use base64::engine::general_purpose;
+use base64::Engine;
 use displaydoc::Display;
 use once_cell::sync::OnceCell;
 use rand::Rng;
-use rand::RngCore;
+use rand::TryRngCore;
 use serde::Serialize;
 use std::convert::TryInto;
 use thiserror::Error;
@@ -20,7 +22,7 @@ const TAG_LEN: usize = 16;
 static KEY: OnceCell<[u8; 32]> = OnceCell::new();
 
 pub fn generate_key() -> [u8; 32] {
-    rand::thread_rng().gen()
+    rand::rng().random()
 }
 
 pub fn set_key(k: [u8; 32]) {
@@ -60,7 +62,7 @@ pub fn user_cookie_generate(user: i64) -> String {
     in_out.copy_from_slice(cookie_val);
 
     // Fill nonce piece with random data.
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     rng.try_fill_bytes(nonce)
         .expect("couldn't random fill nonce");
     let nonce = GenericArray::clone_from_slice(nonce);
@@ -76,12 +78,14 @@ pub fn user_cookie_generate(user: i64) -> String {
     tag.copy_from_slice(&aad_tag);
 
     // Base64 encode [nonce | encrypted value | tag].
-    base64::encode(&data)
+    general_purpose::URL_SAFE.encode(&data)
 }
 
 /// Function decrypts a UserID which was encrypted with `user_cookie_generate`
 pub fn user_cookie_decode(cookie: String) -> Result<i64, AuthError> {
-    let data = base64::decode(cookie).map_err(|_| AuthError::BadBase64)?;
+    let data = general_purpose::URL_SAFE
+        .decode(cookie)
+        .map_err(|_| AuthError::BadBase64)?;
     if data.len() <= NONCE_LEN {
         return Err(AuthError::ShortData);
     }
