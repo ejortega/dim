@@ -3,9 +3,9 @@
 //!
 //! The project is split up into several crates:
 //! * [`database`](dim-database) - Holds all the database models including some frequently used db operations
-//! * [`routes`](routes) - All of the routes that we expose over http are stored in there
+//! * [`routes`] - All of the routes that we expose over http are stored in there
 //! * [`scanners`](scanner) - The filesystem scanner and daemon code is located here
-//! ffmpeg that is used by several parts of dim
+//!   ffmpeg that is used by several parts of dim
 //!
 //! # Building
 //! Dim can easily be built with cargo build --release.
