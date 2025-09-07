@@ -4,7 +4,7 @@ members = [
     # "dim-core",
     "dim-auth",
     "dim-database",
-    # "dim-events",
+    "dim-events",
     # "dim-extern-api",
     # "dim-web",
     # "dim-utils",
