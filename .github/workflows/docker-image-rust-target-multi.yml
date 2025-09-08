@@ -202,7 +202,7 @@ jobs:
         run: ls -al bin/
 
       - name: setup qemu
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v2
       - uses: docker/metadata-action@v4
         id: meta
