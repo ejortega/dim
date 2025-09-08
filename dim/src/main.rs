@@ -3,10 +3,10 @@ use std::time::Duration;
 
 use clap::Parser;
 use dim::streaming;
-
-use xtra::spawn::Tokio;
+use fdlimit::Outcome;
 
 use dim_core as dim;
+
 #[derive(Debug, clap::Parser)]
 #[clap(name = "Dim", about = "Dim, a media manager fueled by dark forces.")]
 #[clap(version = env!("CARGO_PKG_VERSION"), author = env!("CARGO_PKG_AUTHORS"))]
@@ -76,8 +76,16 @@ fn main() {
     }
 
     // The mediafile scanner is super hungry for fds. Increase our limits here as much as possible.
-    if let Some(limit) = fdlimit::raise_fd_limit() {
-        tracing::info!(limit, "Raising fd limit.");
+    match fdlimit::raise_fd_limit() {
+        Ok(Outcome::LimitRaised { from, to }) => {
+            tracing::info!(old = from, new = to, "Raised file descriptor limit");
+        }
+        Ok(Outcome::Unsupported) => {
+            tracing::info!("Raising file descriptor limit is unsupported on this platform");
+        }
+        Err(err) => {
+            tracing::warn!(%err, "Failed to raise file descriptor limit");
+        }
     }
 
     nightfall::profiles::profiles_init(crate::streaming::FFMPEG_BIN.to_string());
@@ -98,8 +106,7 @@ fn main() {
             tokio::spawn(reactor_core.react(reactor));
         }
 
-        let stream_manager = nightfall::StateManager::new(
-            &mut Tokio::Global,
+        let stream_manager = nightfall::StateManager::start_tokio(
             global_settings.cache_dir.clone(),
             crate::streaming::FFMPEG_BIN.to_string(),
         );

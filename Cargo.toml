@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    # "dim/",
+    "dim/",
     "dim-core",
     "dim-auth",
     "dim-database",
