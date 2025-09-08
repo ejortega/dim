@@ -16,14 +16,18 @@ pub enum Entry<T> {
 
 impl<T> Default for Entry<T> {
     fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<T> Entry<T> {
+    pub fn new() -> Self {
         Self::Directory {
             folder: "/".into(),
             files: vec![],
         }
     }
-}
 
-impl<T> Entry<T> {
     /// Helper which can turn a collection of values into a tree. The caller must supply a closure
     /// which extracts a key from a value.
     pub fn build_with<U>(
@@ -31,7 +35,7 @@ impl<T> Entry<T> {
         k: impl Fn(&U) -> Vec<String>,
         v: impl Fn(&str, U) -> T,
     ) -> Self {
-        let mut entry = Self::default();
+        let mut entry = Self::new();
 
         for value in values.into_iter() {
             let mut components = k(&value);

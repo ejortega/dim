@@ -203,7 +203,7 @@ pub async fn generate_invite(
     Ok(axum::response::Json(json!({ "token": token })).into_response())
 }
 
-/// # DELETE `/api/v1/auth/token/:token`
+/// # DELETE `/api/v1/auth/token/{token}`
 /// Method will revoke the supplied token.
 ///
 /// # Authorization

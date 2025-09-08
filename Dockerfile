@@ -1,4 +1,4 @@
-FROM node:18-bullseye AS web
+FROM node:18-bookworm AS web
 WORKDIR /ui
 COPY ui/package*.json ./
 RUN yarn install
@@ -6,7 +6,7 @@ COPY ui ./
 ENV NODE_OPTIONS=--openssl-legacy-provider
 RUN yarn run build
 
-FROM debian:bullseye AS ffmpeg
+FROM debian:bookworm AS ffmpeg
 ARG DEBIAN_FRONTEND=noninteractive
 WORKDIR /static
 ARG TARGETPLATFORM
@@ -20,21 +20,21 @@ RUN if [ "${TARGETPLATFORM}" = "linux/amd64" ]; then \
     ls -la . && \
     pwd \
     ; fi
-    
+
 RUN if [ "${TARGETPLATFORM}" = "linux/arm64" ]; then \
     wget https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-arm64-static.tar.xz && \
     tar --strip-components 1 -xf ffmpeg-release-arm64-static.tar.xz \
     ; fi
-    
+
 RUN if [ "${TARGETPLATFORM}" = "linux/arm/v7" ]; then \
     wget https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-armhf-static.tar.xz && \
     tar --strip-components 1 -xf ffmpeg-release-armhf-static.tar.xz \
     ; fi
-    
+
 RUN chmod +x /static/ffmpeg && chmod +x /static/ffprobe
 
 
-FROM rust:bullseye AS dim
+FROM rust:bookworm AS dim
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
     libva-dev \
@@ -49,16 +49,16 @@ ARG DATABASE_URL="sqlite://dim_dev.db"
 # Sometimes we may need to quickly build a test image
 ARG RUST_BUILD=release
 RUN if [ "$RUST_BUILD" = "debug" ]; then \
-        cargo build --features vaapi && \
-        mv ./target/debug/dim ./target/dim \
+    cargo build --features vaapi && \
+    mv ./target/debug/dim ./target/dim \
     ; fi
 
 RUN if [ "$RUST_BUILD" = "release" ]; then \
-        cargo build --features vaapi --release && \
-        mv ./target/release/dim ./target/dim \
+    cargo build --features vaapi --release && \
+    mv ./target/release/dim ./target/dim \
     ; fi
 
-FROM debian:bullseye
+FROM debian:bookworm
 ENV RUST_BACKTRACE=full
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \

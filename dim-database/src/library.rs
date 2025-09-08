@@ -186,7 +186,7 @@ impl Library {
     }
 }
 
-/// InsertableLibrary struct, same as [`Library`](Library) but without the id field.
+/// InsertableLibrary struct, same as [`Library`] but without the id field.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct InsertableLibrary {
     pub name: String,

@@ -44,16 +44,19 @@ fn library_routes() -> Router<AppState> {
         .route("/api/v1/library", get(routes::library::library_get_all))
         .route("/api/v1/library", post(routes::library::library_post))
         .route(
-            "/api/v1/library/:id/media",
+            "/api/v1/library/{id}/media",
             get(routes::library::library_get_media),
         )
-        .route("/api/v1/library/:id", get(routes::library::library_get_one))
         .route(
-            "/api/v1/library/:id",
+            "/api/v1/library/{id}",
+            get(routes::library::library_get_one),
+        )
+        .route(
+            "/api/v1/library/{id}",
             delete(routes::library::library_delete),
         )
         .route(
-            "/api/v1/library/:id/unmatched",
+            "/api/v1/library/{id}/unmatched",
             get(routes::library::library_get_unmatched),
         )
 }
@@ -67,7 +70,7 @@ fn auth_routes() -> Router<AppState> {
             post(routes::auth::generate_invite),
         )
         .route(
-            "/api/v1/auth/token/:token",
+            "/api/v1/auth/token/{token}",
             delete(routes::auth::delete_token),
         )
 }
@@ -87,30 +90,30 @@ fn dashboard_routes() -> Router<AppState> {
 
 fn media_routes() -> Router<AppState> {
     Router::new()
-        .route("/api/v1/media/:id", get(routes::media::get_media_by_id))
+        .route("/api/v1/media/{id}", get(routes::media::get_media_by_id))
         .route(
-            "/api/v1/media/:id/files",
+            "/api/v1/media/{id}/files",
             get(routes::media::get_media_files),
         )
         .route(
-            "/api/v1/media/:id/tree",
+            "/api/v1/media/{id}/tree",
             get(routes::media::get_mediafile_tree),
         )
         .route(
-            "/api/v1/media/:id",
+            "/api/v1/media/{id}",
             patch(routes::media::update_media_by_id),
         )
         .route(
-            "/api/v1/media/:id",
+            "/api/v1/media/{id}",
             delete(routes::media::delete_media_by_id),
         )
         .route("/api/v1/media/tmdb_search", get(routes::media::tmdb_search))
         .route(
-            "/api/v1/media/:id/progress",
+            "/api/v1/media/{id}/progress",
             post(routes::media::map_progress),
         )
         .route(
-            "/api/v1/media/:id/match",
+            "/api/v1/media/{id}/match",
             patch(routes::media::rematch_media_by_id),
         )
 }
@@ -118,39 +121,39 @@ fn media_routes() -> Router<AppState> {
 fn stream_routes() -> Router<AppState> {
     Router::new()
         .route(
-            "/api/v1/stream/:id/manifest",
+            "/api/v1/stream/{id}/manifest",
             get(routes::stream::return_virtual_manifest),
         )
         .route(
-            "/api/v1/stream/:gid/manifest.mpd",
+            "/api/v1/stream/{gid}/manifest.mpd",
             get(routes::stream::return_manifest),
         )
         .route(
-            "/api/v1/stream/:id/data/init.mp4",
+            "/api/v1/stream/{id}/data/init.mp4",
             get(routes::stream::get_init),
         )
         .route(
-            "/api/v1/stream/:gid/state/should_hard_seek/:chunk_num",
+            "/api/v1/stream/{gid}/state/should_hard_seek/{chunk_num}",
             get(routes::stream::should_client_hard_seek),
         )
         .route(
-            "/api/v1/stream/:gid/state/get_stderr",
+            "/api/v1/stream/{gid}/state/get_stderr",
             get(routes::stream::session_get_stderr),
         )
         .route(
-            "/api/v1/stream/:gid/state/kill_session",
+            "/api/v1/stream/{gid}/state/kill_session",
             get(routes::stream::kill_session),
         )
         .route(
-            "/api/v1/stream/:id/data/stream.vtt",
+            "/api/v1/stream/{id}/data/stream.vtt",
             get(routes::stream::get_subtitle),
         )
         .route(
-            "/api/v1/stream/:id/data/stream.ass",
+            "/api/v1/stream/{id}/data/stream.ass",
             get(routes::stream::get_subtitle_ass),
         )
         .route(
-            "/api/v1/stream/:id/data/*chunk",
+            "/api/v1/stream/{id}/data/{*chunk}",
             get(routes::stream::get_chunk),
         )
 }
@@ -158,31 +161,31 @@ fn stream_routes() -> Router<AppState> {
 fn episode_routes() -> Router<AppState> {
     Router::new()
         .route(
-            "/api/v1/episode/:id",
+            "/api/v1/episode/{id}",
             patch(routes::tv::patch_episode_by_id),
         )
         .route(
-            "/api/v1/episode/:id",
+            "/api/v1/episode/{id}",
             delete(routes::tv::delete_episode_by_id),
         )
 }
 
 fn season_routes() -> Router<AppState> {
     Router::new()
-        .route("/api/v1/season/:id", get(routes::tv::get_season_by_id))
-        .route("/api/v1/season/:id", patch(routes::tv::patch_season_by_id))
+        .route("/api/v1/season/{id}", get(routes::tv::get_season_by_id))
+        .route("/api/v1/season/{id}", patch(routes::tv::patch_season_by_id))
         .route(
-            "/api/v1/season/:id",
+            "/api/v1/season/{id}",
             delete(routes::tv::delete_season_by_id),
         )
         .route(
-            "/api/v1/season/:id/episodes",
+            "/api/v1/season/{id}/episodes",
             get(routes::tv::get_season_episodes),
         )
 }
 
 fn tv_routes() -> Router<AppState> {
-    Router::new().route("/api/v1/tv/:id/season", get(routes::tv::get_tv_seasons))
+    Router::new().route("/api/v1/tv/{id}/season", get(routes::tv::get_tv_seasons))
 }
 
 fn filebrowser_routes() -> Router<AppState> {
@@ -192,7 +195,7 @@ fn filebrowser_routes() -> Router<AppState> {
             get(routes::filebrowser::get_directory_structure),
         )
         .route(
-            "/api/v1/filebrowser/*path",
+            "/api/v1/filebrowser/{*path}",
             get(routes::filebrowser::get_directory_structure),
         )
 }
@@ -200,7 +203,7 @@ fn filebrowser_routes() -> Router<AppState> {
 fn mediafile_routes() -> Router<AppState> {
     Router::new()
         .route(
-            "/api/v1/mediafile/:id",
+            "/api/v1/mediafile/{id}",
             get(routes::mediafile::get_mediafile_info),
         )
         .route(
@@ -247,9 +250,9 @@ fn user_routes() -> Router<AppState> {
 fn static_routes() -> Router<AppState> {
     Router::new()
         .route("/", get(routes::statik::react_routes))
-        .route("/*path", get(routes::statik::react_routes))
-        .route("/static/*path", get(routes::statik::dist_static))
-        .route("/images/*path", get(routes::statik::get_image))
+        .route("/{*path}", get(routes::statik::react_routes))
+        .route("/static/{*path}", get(routes::statik::dist_static))
+        .route("/images/{*path}", get(routes::statik::get_image))
 }
 
 pub async fn start_webserver(
