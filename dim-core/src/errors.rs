@@ -100,7 +100,7 @@ impl IntoResponse for DimError {
             | Self::NotFoundError
             | Self::ExternalSearchError(_) => {
                 (StatusCode::NOT_FOUND, self.to_string()).into_response()
-            },
+            }
             Self::StreamingError(_)
             | Self::DatabaseError { .. }
             | Self::UnknownError
@@ -109,18 +109,16 @@ impl IntoResponse for DimError {
             | Self::UploadFailed
             | Self::ScannerError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()).into_response()
-            },
+            }
             Self::Unauthenticated
             | Self::Unauthorized
             | Self::InvalidCredentials
             | Self::CookieError(_)
             | Self::NoToken
-            | Self::UserNotFound => {
-                (StatusCode::UNAUTHORIZED, self.to_string()).into_response()
-            },
+            | Self::UserNotFound => (StatusCode::UNAUTHORIZED, self.to_string()).into_response(),
             Self::UsernameNotAvailable => {
                 (StatusCode::BAD_REQUEST, self.to_string()).into_response()
-            },
+            }
             Self::UnsupportedFile | Self::InvalidMediaType | Self::MissingFieldInBody { .. } => {
                 (StatusCode::NOT_ACCEPTABLE, self.to_string()).into_response()
             }
@@ -184,9 +182,7 @@ impl IntoResponse for StreamingErrors {
             Self::NoMediaFileFound(_) | Self::FileDoesNotExist => {
                 (StatusCode::NOT_FOUND, self.to_string()).into_response()
             }
-            _ => {
-                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()).into_response()
-            }
+            _ => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()).into_response(),
         }
     }
 }
