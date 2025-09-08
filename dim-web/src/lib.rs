@@ -328,11 +328,9 @@ pub async fn start_webserver(
         .with_state(app)
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .layer({
-            let cors = tower_http::cors::CorsLayer::new()
+            tower_http::cors::CorsLayer::new()
                 // allow requests from any origin
-                .allow_origin(tower_http::cors::Any);
-
-            cors
+                .allow_origin(tower_http::cors::Any)
         });
 
     tracing::info!(%address, "webserver is listening");
@@ -346,8 +344,6 @@ pub async fn start_webserver(
 
     tokio::select! {
         _ = web_fut => {},
-        _ = shutdown_fut => {
-            return;
-        }
+        _ = shutdown_fut => {}
     }
 }

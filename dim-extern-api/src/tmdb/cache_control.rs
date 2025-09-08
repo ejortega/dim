@@ -64,7 +64,7 @@ impl CacheValue {
 
     pub fn mem_size(&self) -> usize {
         let body_size = match self {
-            Self::Body { text, .. } => text.as_bytes().len(),
+            Self::Body { text, .. } => text.len(),
             _ => 0,
         };
 

@@ -120,7 +120,7 @@ fn main() {
 
             loop {
                 interval.tick().await;
-                let _ = stream_manager_clone.garbage_collect().await.unwrap();
+                stream_manager_clone.garbage_collect().await.unwrap();
             }
         });
 

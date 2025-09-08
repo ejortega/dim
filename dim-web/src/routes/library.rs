@@ -301,7 +301,7 @@ pub async fn library_get_unmatched(
             })
             .collect::<Vec<_>>();
 
-        matched_files.sort_by(|(_, a), (_, b)| b.cmp(&a));
+        matched_files.sort_by(|(_, a), (_, b)| b.cmp(a));
 
         files = matched_files.into_iter().map(|(file, _)| file).collect();
     }

@@ -11,8 +11,8 @@ macro_rules! opt_update {
     };
     ($conn:ident, $query:expr => ($self:expr, $constraint:expr), $($tail:tt)+) => {
         {
-            crate::opt_update!($conn, $query => ($self, $constraint));
-            crate::opt_update!($conn, $($tail)*);
+            $crate::opt_update!($conn, $query => ($self, $constraint));
+            $crate::opt_update!($conn, $($tail)*);
         }
     }
 }

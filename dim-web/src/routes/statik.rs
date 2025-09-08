@@ -27,15 +27,14 @@ cfg_if::cfg_if! {
         #[derive(RustEmbed)]
         #[folder = "../ui/build/"]
         #[prefix = "/"]
-        pub(self) struct Asset;
+        pub struct Asset;
     } else {
         use rust_embed::Filenames;
-        use std::borrow::Cow;
 
-        pub(self) struct Asset;
+        pub struct Asset;
 
         impl RustEmbed for Asset {
-            fn get(_: &str) -> Option<Cow<'static, [u8]>> {
+            fn get(_: &str) -> Option<rust_embed::EmbeddedFile> {
                 None
             }
 
@@ -97,7 +96,7 @@ pub async fn get_image(
 
     let accents = match (image.as_ref(), params.attach_accents) {
         (Some(data), true) => {
-            if let Ok(image) = image::load_from_memory(&data) {
+            if let Ok(image) = image::load_from_memory(data) {
                 Some(
                     dominant_color::get_colors(image.as_bytes(), false)
                         .chunks_exact(3)

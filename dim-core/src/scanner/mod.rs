@@ -46,60 +46,11 @@ use tracing::warn;
 pub use error::Error;
 
 pub(super) static SUPPORTED_EXTS: &[&str] = &[
-    "001",
-    "3g2",
-    "3gp",
-    "amv",
-    "asf",
-    "asx",
-    "avi",
-    "bin",
-    "bivx",
-    "divx",
-    "dv",
-    "dvr-ms",
-    "f4v",
-    "fli",
-    "flv",
-    "ifo",
-    "img",
-    "iso",
-    "m2t",
-    "m2ts",
-    "m2v",
-    "m4v",
-    "mkv",
-    "mk3d",
-    "mov",
-    "mp4",
-    "mpe",
-    "mpeg",
-    "mpg",
-    "mts",
-    "mxf",
-    "nrg",
-    "nsv",
-    "nuv",
-    "ogg",
-    "ogm",
-    "ogv",
-    "pva",
-    "qt",
-    "rec",
-    "rm",
-    "rmvb",
-    "strm",
-    "svq3",
-    "tp",
-    "ts",
-    "ty",
-    "viv",
-    "vob",
-    "vp3",
-    "webm",
-    "wmv",
-    "wtv",
-    "xvid"
+    "001", "3g2", "3gp", "amv", "asf", "asx", "avi", "bin", "bivx", "divx", "dv", "dvr-ms", "f4v",
+    "fli", "flv", "ifo", "img", "iso", "m2t", "m2ts", "m2v", "m4v", "mkv", "mk3d", "mov", "mp4",
+    "mpe", "mpeg", "mpg", "mts", "mxf", "nrg", "nsv", "nuv", "ogg", "ogm", "ogv", "pva", "qt",
+    "rec", "rm", "rmvb", "strm", "svq3", "tp", "ts", "ty", "viv", "vob", "vp3", "webm", "wmv",
+    "wtv", "xvid",
 ];
 
 /// Function recursively walks the paths passed and returns all files in those directories.
@@ -127,7 +78,7 @@ pub fn get_subfiles(paths: impl Iterator<Item = impl AsRef<Path>>) -> Vec<PathBu
                 f.path()
                     .extension()
                     .and_then(|e| e.to_str())
-                    .map_or(false, |e| SUPPORTED_EXTS.contains(&e))
+                    .is_some_and(|e| SUPPORTED_EXTS.contains(&e))
             })
             .map(|f| f.into_path())
             .collect();
@@ -153,11 +104,11 @@ pub fn parse_filenames(
         };
 
         let metas = IntoIterator::into_iter([
-            TorrentMetadata::from_str(&filename),
-            Anitomy::from_str(&filename),
-            CombinedExtractor::from_str(&filename),
+            TorrentMetadata::from_str(filename),
+            Anitomy::from_str(filename),
+            CombinedExtractor::from_str(filename),
         ])
-        .filter_map(|x| x)
+        .flatten()
         .collect::<Vec<_>>();
 
         if metas.is_empty() {
@@ -350,7 +301,7 @@ pub async fn start(
 
     let lib = Library::get_one(&mut tx_, library_id)
         .await
-        .map_err(|e| Error::LibraryNotFound(e))?;
+        .map_err(Error::LibraryNotFound)?;
 
     start_custom(
         conn,

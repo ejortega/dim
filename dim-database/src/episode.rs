@@ -99,7 +99,7 @@ impl Episode {
         .await?;
 
         for wrapper in wrappers {
-            if let Ok(episode) = Media::get(&mut *conn, wrapper.id as i64).await {
+            if let Ok(episode) = Media::get(&mut *conn, wrapper.id).await {
                 episodes.push(wrapper.into_episode(episode))
             }
         }
@@ -128,7 +128,7 @@ impl Episode {
         let mut episodes = vec![];
 
         for wrapper in wrappers {
-            if let Ok(episode) = Media::get(&mut *conn, wrapper.id as i64).await {
+            if let Ok(episode) = Media::get(&mut *conn, wrapper.id).await {
                 episodes.push(wrapper.into_episode(episode))
             }
         }
@@ -345,7 +345,7 @@ impl Episode {
     ) -> Result<usize, DatabaseError> {
         // NOTE: no need to manually delete the episode entry from `episode` because of the
         // cascade delete.
-        Ok(Media::delete(conn, episode_id).await?)
+        Media::delete(conn, episode_id).await
     }
 }
 

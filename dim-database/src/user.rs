@@ -18,7 +18,7 @@ use sqlx::Encode;
 
 static PBKDF2_ALG: pbkdf2::Algorithm = pbkdf2::PBKDF2_HMAC_SHA256;
 const CREDENTIAL_LEN: usize = digest::SHA256_OUTPUT_LEN;
-const HASH_ROUNDS: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(1_000) };
+const HASH_ROUNDS: NonZeroU32 = NonZeroU32::new(1_000).unwrap();
 
 pub type Credential = [u8; CREDENTIAL_LEN];
 
@@ -536,7 +536,7 @@ pub fn hash(salt: String, s: String) -> String {
     pbkdf2::derive(
         PBKDF2_ALG,
         HASH_ROUNDS,
-        &salt.as_bytes(),
+        salt.as_bytes(),
         s.as_bytes(),
         &mut to_store,
     );
@@ -549,7 +549,7 @@ pub fn verify(salt: String, password: String, attempted_password: String) -> boo
     pbkdf2::verify(
         PBKDF2_ALG,
         HASH_ROUNDS,
-        &salt.as_bytes(),
+        salt.as_bytes(),
         attempted_password.as_bytes(),
         real_pwd.as_slice(),
     )

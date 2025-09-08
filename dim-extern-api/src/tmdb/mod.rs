@@ -16,7 +16,7 @@ pub use metadata_provider::{MetadataProviderOf, Movies, TMDBMetadataProvider, Tv
 use raw_client::{Cast, Genre, GenreList, SearchResponse, TMDBMediaObject, TvEpisodes, TvSeasons};
 
 #[derive(Debug, displaydoc::Display, Clone, thiserror::Error)]
-pub(self) enum TMDBClientRequestError {
+pub enum TMDBClientRequestError {
     /// The body of a response was not value UTF-8.
     InvalidUTF8Body,
     /// the error comes from reqwest.

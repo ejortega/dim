@@ -172,10 +172,10 @@ pub async fn try_create_dstream(
         // FIXME: Stop hardcoding a fps of 24
         let video_avc = video_stream
             .level
-            .and_then(|x| level_to_tag(x))
+            .and_then(level_to_tag)
             .unwrap_or(get_avc1_tag(
-                video_stream.width.clone().unwrap_or(1920) as u64,
-                video_stream.height.clone().unwrap_or(1080) as u64,
+                video_stream.width.unwrap_or(1920) as u64,
+                video_stream.height.unwrap_or(1080) as u64,
                 video_stream
                     .get_bitrate()
                     .or(info.get_container_bitrate())
@@ -197,7 +197,7 @@ pub async fn try_create_dstream(
 
             format!(
                 "{}p@{}{} (Direct Play)",
-                video_stream.height.clone().unwrap(),
+                video_stream.height.unwrap(),
                 bitrate_norm,
                 ident
             )
@@ -212,12 +212,12 @@ pub async fn try_create_dstream(
                 .set_duration(info.get_duration())
                 .set_codecs(video_avc.to_string())
                 .set_bandwidth(bitrate)
-                .set_args([("height", video_stream.height.clone().unwrap())])
+                .set_args([("height", video_stream.height.unwrap())])
                 .set_is_default(!should_stream_default)
                 .set_target_duration(10)
                 .set_label(label);
 
-        stream_tracking.insert(&gid, virtual_manifest).await;
+        stream_tracking.insert(gid, virtual_manifest).await;
     }
 
     Ok(should_stream_default)
@@ -248,8 +248,7 @@ pub async fn create_video(
     for quality in qualities {
         let bitrate = video_stream
             .get_bitrate()
-            .or(Some(quality.bitrate))
-            .unwrap()
+            .unwrap_or(quality.bitrate)
             .min(quality.bitrate);
 
         let ctx = ProfileContext {
@@ -287,7 +286,7 @@ pub async fn create_video(
 
         let video_avc = video_stream
             .level
-            .and_then(|x| level_to_tag(x))
+            .and_then(level_to_tag)
             .unwrap_or(get_avc1_tag(
                 width as u64,
                 quality.height,
@@ -314,7 +313,7 @@ pub async fn create_video(
                 .set_is_default(should_be_default)
                 .set_label(label);
 
-        stream_tracking.insert(&gid, virtual_manifest).await;
+        stream_tracking.insert(gid, virtual_manifest).await;
         // we wan to default only the first stream.
         if should_be_default {
             should_stream_default = false;
@@ -377,7 +376,7 @@ pub async fn create_audio(
                 .set_label(label)
                 .set_lang(stream.get_language());
 
-        stream_tracking.insert(&gid, virtual_manifest).await;
+        stream_tracking.insert(gid, virtual_manifest).await;
     }
 
     Ok(())
@@ -449,7 +448,7 @@ pub async fn create_subtitles(
         let title = title.replace("&", "and"); // dash.js seems to note like when there are `&` within titles.
         let virtual_manifest = virtual_manifest.set_args([("title".to_string(), title)]);
 
-        stream_tracking.insert(&gid, virtual_manifest).await;
+        stream_tracking.insert(gid, virtual_manifest).await;
     }
 
     Ok(())
@@ -468,7 +467,7 @@ pub struct ManifestParams {
 /// # Query args
 /// * `start_num` - first chunk number
 /// * `should_kill` - indicates whether we should clean old streams up while compiling the
-/// manifest.
+///   manifest.
 /// * `includes` - ids of streams to include, comma separated.
 pub async fn return_manifest(
     State(AppState {
@@ -532,7 +531,7 @@ where
 
     loop {
         if ticks >= tick_limit {
-            return Err(NightfallError::ChunkNotDone.into());
+            return Err(NightfallError::ChunkNotDone);
         }
 
         let result = f().await;

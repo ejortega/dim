@@ -30,12 +30,12 @@ pub async fn verify_token(
     let id: UserID;
     if let Some(token) = get_cookie_token_value(&req) {
         id = dim_database::user::Login::verify_cookie(token)
-            .map_err(|e| DimError::CookieError(e))
-            .map_err(|e| DimErrorWrapper(e))?;
+            .map_err(DimError::CookieError)
+            .map_err(DimErrorWrapper)?;
     } else if let Some(token) = req.headers().get(axum::http::header::AUTHORIZATION) {
         id = dim_database::user::Login::verify_cookie(token.to_str().unwrap().to_string())
-            .map_err(|e| DimError::CookieError(e))
-            .map_err(|e| DimErrorWrapper(e))?;
+            .map_err(DimError::CookieError)
+            .map_err(DimErrorWrapper)?;
     } else {
         return Err(DimErrorWrapper(DimError::NoToken));
     }
@@ -51,7 +51,7 @@ pub async fn verify_token(
     let current_user = dim_database::user::User::get_by_id(&mut tx, id)
         .await
         .map_err(|_| DimError::UserNotFound)
-        .map_err(|e| DimErrorWrapper(e))?;
+        .map_err(DimErrorWrapper)?;
 
     req.extensions_mut().insert(current_user);
     Ok(next.run(req).await)

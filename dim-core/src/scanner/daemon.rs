@@ -132,7 +132,7 @@ impl FsWatcher {
             && path
                 .extension()
                 .and_then(|e| e.to_str())
-                .map_or(false, |e| super::SUPPORTED_EXTS.contains(&e))
+                .is_some_and(|e| super::SUPPORTED_EXTS.contains(&e))
         {
             if let Ok(mfile) =
                 super::insert_mediafiles(&mut self.conn, self.library_id, vec![path.clone()]).await

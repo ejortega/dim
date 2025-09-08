@@ -176,17 +176,12 @@ pub async fn handle_websocket_session(
         }
     }
 
-    loop {
-        tokio::select! {
-            biased;
-            _ = tokio::signal::ctrl_c() => {
-                break;
-            }
-
-            None = stream.next() => {
-                let _ = socket_tx.send(CtrlEvent::Forget { addr }).await;
-                break;
-            }
+    tokio::select! {
+        _ = tokio::signal::ctrl_c() => {}
+        _ = async {
+            while stream.next().await.is_some() {}
+        } => {
+            let _ = socket_tx.send(CtrlEvent::Forget { addr }).await;
         }
     }
 }

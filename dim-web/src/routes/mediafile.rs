@@ -1,9 +1,9 @@
 use crate::AppState;
+use axum::extract::Path;
+use axum::extract::State;
 use axum::response::IntoResponse;
 use axum::response::Json;
 use axum::response::Response;
-use axum::extract::Path;
-use axum::extract::State;
 
 use dim_core::scanner::movie;
 use dim_core::scanner::parse_filenames;
@@ -14,9 +14,9 @@ use dim_core::scanner::WorkUnit;
 use super::media::MOVIES_PROVIDER;
 use super::media::TV_PROVIDER;
 
-use dim_database::DatabaseError;
 use dim_database::library::MediaType;
 use dim_database::mediafile::MediaFile;
+use dim_database::DatabaseError;
 
 use dim_extern_api::ExternalQueryIntoShow;
 
@@ -60,9 +60,7 @@ impl IntoResponse for Error {
             Self::InvalidMediaType => {
                 (StatusCode::NOT_ACCEPTABLE, self.to_string()).into_response()
             }
-            Self::NoMediafiles => {
-                (StatusCode::BAD_REQUEST, self.to_string()).into_response()
-            }
+            Self::NoMediafiles => (StatusCode::BAD_REQUEST, self.to_string()).into_response(),
             Self::InvalidCredentials => {
                 (StatusCode::UNAUTHORIZED, self.to_string()).into_response()
             }
@@ -89,16 +87,15 @@ pub async fn get_mediafile_info(
     Path(id): Path<i64>,
 ) -> Result<impl IntoResponse, Error> {
     let mut tx = conn.read().begin().await.map_err(DatabaseError::from)?;
-    let mediafile = MediaFile::get_one(&mut tx, id)
-        .await
-        .map_err(DatabaseError::from)?;
+    let mediafile = MediaFile::get_one(&mut tx, id).await?;
 
     Ok(Json(&json!({
         "id": mediafile.id,
         "media_id": mediafile.media_id,
         "library_id": mediafile.library_id,
         "raw_name": mediafile.raw_name,
-    })).into_response())
+    }))
+    .into_response())
 }
 
 /// Method mapped to `PATCH /api/v1/mediafile/match` used to match a unmatched(orphan)
@@ -108,7 +105,7 @@ pub async fn get_mediafile_info(
 /// * `conn` - database connection
 /// * `log` - logger
 /// * `event_tx` - websocket channel over which we dispatch a event notifying other clients of the
-/// new metadata
+///   new metadata
 ///
 /// * `mediafiles` - ids of the orphan mediafiles we want to rematch
 /// * `tmdb_id` - the tmdb id of the proper metadata we want to fetch for the media
@@ -117,10 +114,11 @@ pub async fn rematch_mediafile(
     Json(route_args): Json<RouteArgs>,
 ) -> Result<impl IntoResponse, Error> {
     if route_args.mediafiles.is_empty() {
-        return Err(Error::NoMediafiles.into());
+        return Err(Error::NoMediafiles);
     }
 
-    let Ok(media_type): Result<MediaType, ()> = route_args.media_type.to_lowercase().try_into() else {
+    let Ok(media_type): Result<MediaType, ()> = route_args.media_type.to_lowercase().try_into()
+    else {
         return Err(Error::InvalidMediaType);
     };
 
@@ -141,18 +139,25 @@ pub async fn rematch_mediafile(
 
     info!(?media_type, route_args.mediafiles = ?&route_args.mediafiles, "Rematching mediafiles");
 
-    let mediafiles = MediaFile::get_many(&mut tx, &route_args.mediafiles).await.map_err(DatabaseError::from)?;
+    let mediafiles = MediaFile::get_many(&mut tx, &route_args.mediafiles).await?;
 
-    provider.search_by_id(&route_args.tmdb_id).await.map_err(|e| {
-        error!(?e, "Failed to search for tmdb_id when rematching.");
-        Error::ExternalSearchError(e.to_string())
-    })?;
+    provider
+        .search_by_id(&route_args.tmdb_id)
+        .await
+        .map_err(|e| {
+            error!(?e, "Failed to search for tmdb_id when rematching.");
+            Error::ExternalSearchError(e.to_string())
+        })?;
 
     let mut lock = conn.writer().lock_owned().await;
-    let mut tx = dim_database::write_tx(&mut lock).await.map_err(DatabaseError::from)?;
+    let mut tx = dim_database::write_tx(&mut lock)
+        .await
+        .map_err(DatabaseError::from)?;
 
     for mediafile in mediafiles {
-        let Some((_, metadata)) = parse_filenames(IntoIterator::into_iter([&mediafile.target_file])).pop() else {
+        let Some((_, metadata)) =
+            parse_filenames(IntoIterator::into_iter([&mediafile.target_file])).pop()
+        else {
             continue;
         };
 

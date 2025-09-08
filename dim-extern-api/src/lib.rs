@@ -146,7 +146,7 @@ pub trait ExternalQuery: Debug + Send + Sync {
 pub trait IntoQueryShow {
     /// Upcast `self` into `ExternalQueryShow`. It is important that providers that can query for
     /// tv shows, implements this to return `Some(self)`.
-    fn as_query_show<'a>(&'a self) -> Option<&'a dyn ExternalQueryShow> {
+    fn as_query_show(&self) -> Option<&dyn ExternalQueryShow> {
         None
     }
 
