@@ -9,7 +9,7 @@ license.workspace = true
 anitomy = "0.2.0"
 async-trait = "0.1.68"
 chrono = { version = "0.4.24", features = ["serde"] }
-dashmap = "5.4.0"
+dashmap = "6.1.0"
 displaydoc = "0.2.3"
 governor = "0.5.1"
 rand = { version = "0.8.5", features = ["small_rng"] }
