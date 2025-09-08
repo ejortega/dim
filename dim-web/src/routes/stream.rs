@@ -1,11 +1,11 @@
-use axum::Extension;
+use crate::AppState;
 use axum::extract::Path;
 use axum::extract::Query;
 use axum::extract::State;
 use axum::response::IntoResponse;
 use axum::response::Json;
 use axum::response::Response;
-use crate::AppState;
+use axum::Extension;
 use dim_core::core::StateManager;
 use dim_core::errors;
 use dim_core::stream_tracking::ContentType;
@@ -39,10 +39,9 @@ use tokio::fs::File;
 use serde::Deserialize;
 use serde_json::json;
 
-use uuid::Uuid;
 use http::header;
 use http::StatusCode;
-
+use uuid::Uuid;
 
 #[derive(Deserialize)]
 pub struct VirtualManifestParams {
@@ -54,7 +53,12 @@ pub struct VirtualManifestParams {
 /// Method mapped to `GET /api/v1/stream/<id>/manifest?<gid>` returns or creates a virtual
 /// manifest.
 pub async fn return_virtual_manifest(
-    State(AppState { conn, state, stream_tracking, .. }): State<AppState>,
+    State(AppState {
+        conn,
+        state,
+        stream_tracking,
+        ..
+    }): State<AppState>,
     Path(id): Path<i64>,
     Query(params): Query<VirtualManifestParams>,
     Extension(user): Extension<User>,
@@ -64,7 +68,8 @@ pub async fn return_virtual_manifest(
         return Ok(Json(&json!({
             "tracks": stream_tracking.get_for_gid(&gid).await,
             "gid": gid.as_hyphenated().to_string(),
-        })).into_response());
+        }))
+        .into_response());
     }
 
     let mut tx = conn.read().begin().await?;
@@ -110,14 +115,23 @@ pub async fn return_virtual_manifest(
     )
     .await?;
     create_audio(&info, &media, &stream_tracking, &gid, &state).await?;
-    create_subtitles(&info, &media, &stream_tracking, &gid, &state, params.force_ass).await?;
+    create_subtitles(
+        &info,
+        &media,
+        &stream_tracking,
+        &gid,
+        &state,
+        params.force_ass,
+    )
+    .await?;
 
     stream_tracking.generate_sids(&gid).await;
 
     Ok(Json(&json!({
         "tracks": stream_tracking.get_for_gid(&gid).await,
         "gid": gid.as_hyphenated().to_string(),
-    })).into_response())
+    }))
+    .into_response())
 }
 
 pub async fn try_create_dstream(
@@ -457,7 +471,11 @@ pub struct ManifestParams {
 /// manifest.
 /// * `includes` - ids of streams to include, comma separated.
 pub async fn return_manifest(
-    State(AppState { state, stream_tracking, .. }): State<AppState>,
+    State(AppState {
+        state,
+        stream_tracking,
+        ..
+    }): State<AppState>,
     Path(gid): Path<String>,
     Query(params): Query<ManifestParams>,
 ) -> Result<impl IntoResponse, errors::StreamingErrors> {
@@ -540,7 +558,7 @@ pub struct InitParams {
 pub async fn get_init(
     State(AppState { state, .. }): State<AppState>,
     Path(id): Path<String>,
-    Query(params): Query<InitParams>
+    Query(params): Query<InitParams>,
 ) -> Result<impl IntoResponse, errors::StreamingErrors> {
     let path: String = timeout_segment(
         || state.chunk_init_request(id.clone(), params.start_num.unwrap_or(0)),
@@ -641,7 +659,11 @@ pub async fn get_subtitle_ass(
 /// client should hard seek in order to play the video at `chunk_num`. This is really only useful
 /// on web platforms.
 pub async fn should_client_hard_seek(
-    State(AppState { state, stream_tracking, .. }): State<AppState>,
+    State(AppState {
+        state,
+        stream_tracking,
+        ..
+    }): State<AppState>,
     Path((gid, chunk_num)): Path<(String, u32)>,
 ) -> Result<impl IntoResponse, errors::StreamingErrors> {
     let gid = match Uuid::parse_str(gid.as_str()) {
@@ -658,13 +680,18 @@ pub async fn should_client_hard_seek(
 
     Ok(Json(&json!({
         "should_client_seek": should_client_hard_seek,
-    })).into_response())
+    }))
+    .into_response())
 }
 
 /// Method mapped to `/api/v1/stream/<gid>/state/get_stderr` attempts to fetch and return the
 /// stderr logs of all ffmpeg streams for `gid`.
 pub async fn session_get_stderr(
-    State(AppState { state, stream_tracking, .. }): State<AppState>,
+    State(AppState {
+        state,
+        stream_tracking,
+        ..
+    }): State<AppState>,
     Path(gid): Path<String>,
 ) -> Result<impl IntoResponse, errors::StreamingErrors> {
     let gid = match Uuid::parse_str(gid.as_str()) {
@@ -677,12 +704,17 @@ pub async fn session_get_stderr(
         .await)
         .filter_map(|x| async { state.get_stderr(x.id).await.ok() })
         .collect::<Vec<_>>().await,
-    })).into_response())
+    }))
+    .into_response())
 }
 
 /// Method mapped to `/api/v1/stream/<gid>/state/kill` will kill all streams for `gid`.
 pub async fn kill_session(
-    State(AppState { state, stream_tracking, .. }): State<AppState>,
+    State(AppState {
+        state,
+        stream_tracking,
+        ..
+    }): State<AppState>,
     Path(gid): Path<String>,
 ) -> Result<impl IntoResponse, errors::StreamingErrors> {
     let gid = match Uuid::parse_str(gid.as_str()) {
@@ -696,8 +728,8 @@ pub async fn kill_session(
     Ok(StatusCode::NO_CONTENT)
 }
 
-use tokio::io::AsyncReadExt;
 use axum::body::Body;
+use tokio::io::AsyncReadExt;
 
 async fn reply_with_file(file: String, header: (&str, &str)) -> Response<Body> {
     if let Ok(mut file) = File::open(file).await {

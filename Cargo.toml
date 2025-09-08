@@ -6,7 +6,7 @@ members = [
     "dim-database",
     "dim-events",
     "dim-extern-api",
-    # "dim-web",
+    "dim-web",
     "dim-utils",
 ]
 resolver = "2"

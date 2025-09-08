@@ -1,16 +1,14 @@
 use crate::AppState;
 use axum::body::Body;
-use axum::http::Request;
 use axum::extract::State;
+use axum::http::Request;
 use axum_extra::extract::cookie::Cookie;
 use dim_core::errors::DimError;
 use dim_database::user::UserID;
 
 use crate::DimErrorWrapper;
 
-pub fn get_cookie_token_value(
-    request: &Request<Body>,
-) -> Option<String> {
+pub fn get_cookie_token_value(request: &Request<Body>) -> Option<String> {
     request
         .headers()
         .get_all("Cookie")
@@ -21,15 +19,13 @@ pub fn get_cookie_token_value(
                 .ok()
                 .and_then(|cookie| cookie.parse::<Cookie>().ok())
         })
-        .find_map(|cookie| {
-            (cookie.name() == "token").then(move || cookie.value().to_owned())
-        })
+        .find_map(|cookie| (cookie.name() == "token").then(move || cookie.value().to_owned()))
 }
 
 pub async fn verify_token(
     State(AppState { conn, .. }): State<AppState>,
     mut req: axum::http::Request<Body>,
-    next: axum::middleware::Next<Body>,
+    next: axum::middleware::Next,
 ) -> Result<axum::response::Response, DimErrorWrapper> {
     let id: UserID;
     if let Some(token) = get_cookie_token_value(&req) {
