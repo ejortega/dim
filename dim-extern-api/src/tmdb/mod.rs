@@ -16,7 +16,7 @@ pub use metadata_provider::{MetadataProviderOf, Movies, TMDBMetadataProvider, Tv
 use raw_client::{Cast, Genre, GenreList, SearchResponse, TMDBMediaObject, TvEpisodes, TvSeasons};
 
 #[derive(Debug, displaydoc::Display, Clone, thiserror::Error)]
-pub(self) enum TMDBClientRequestError {
+pub enum TMDBClientRequestError {
     /// The body of a response was not value UTF-8.
     InvalidUTF8Body,
     /// the error comes from reqwest.
@@ -155,7 +155,7 @@ mod tests {
         assert_eq!(cast[0].name, "Ryan Gosling".to_string());
         assert_eq!(
             cast[0].profile_path,
-            Some("https://image.tmdb.org/t/p/original/lyUyVARQKhGxaxy0FbPJCQRpiaW.jpg".to_string())
+            Some("https://image.tmdb.org/t/p/original/asoKC7CLCqpZKZDL6iovNurQUdf.jpg".to_string())
         );
         assert!(matches!(cast[0].character.as_str(), "K" | "\'K\'"));
     }

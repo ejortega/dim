@@ -1,9 +1,9 @@
 use crate::AppState;
-use axum::body;
-use axum::body::Full;
-use axum::extract::State;
+
+use axum::body::Body;
 use axum::extract::Path;
 use axum::extract::Query;
+use axum::extract::State;
 use axum::http::Uri;
 use axum::response::Html;
 use axum::response::IntoResponse;
@@ -27,15 +27,14 @@ cfg_if::cfg_if! {
         #[derive(RustEmbed)]
         #[folder = "../ui/build/"]
         #[prefix = "/"]
-        pub(self) struct Asset;
+        pub struct Asset;
     } else {
         use rust_embed::Filenames;
-        use std::borrow::Cow;
 
-        pub(self) struct Asset;
+        pub struct Asset;
 
         impl RustEmbed for Asset {
-            fn get(_: &str) -> Option<Cow<'static, [u8]>> {
+            fn get(_: &str) -> Option<rust_embed::EmbeddedFile> {
                 None
             }
 
@@ -48,7 +47,7 @@ cfg_if::cfg_if! {
 
 pub async fn react_routes() -> Result<impl IntoResponse, errors::DimError> {
     if let Some(x) = Asset::get("/index.html") {
-        Ok(Html(x.into_owned()).into_response())
+        Ok(Html(x.data.into_owned()).into_response())
     } else {
         Err(errors::DimError::NotFoundError)
     }
@@ -97,7 +96,7 @@ pub async fn get_image(
 
     let accents = match (image.as_ref(), params.attach_accents) {
         (Some(data), true) => {
-            if let Ok(image) = image::load_from_memory(&data) {
+            if let Ok(image) = image::load_from_memory(data) {
                 Some(
                     dominant_color::get_colors(image.as_bytes(), false)
                         .chunks_exact(3)
@@ -116,23 +115,25 @@ pub async fn get_image(
     };
 
     if let Some(data) = image {
-        let mut resp = Response::builder()
+        let mut builder = Response::builder()
             .status(StatusCode::OK)
             .header("ContentType", "image/jpeg");
 
         if let Some(accents) = accents {
-            resp = resp.header("X-IMAGE-ACCENTS", accents);
+            builder = builder.header("X-IMAGE-ACCENTS", accents);
         }
 
-        return Ok(resp.body(body::boxed(Full::from(data))).map_err(|_| errors::DimError::NotFoundError));
+        let resp = builder
+            .body(Body::from(data))
+            .map_err(|_| errors::DimError::NotFoundError)?;
+
+        return Ok(resp);
     }
 
     Err(errors::DimError::NotFoundError)
 }
 
-pub async fn dist_static(
-    uri: Uri,
-) -> Result<impl IntoResponse, errors::DimError> {
+pub async fn dist_static(uri: Uri) -> Result<impl IntoResponse, errors::DimError> {
     let path = PathBuf::from(uri.path());
     if let Some(y) = Asset::get(path.to_str().unwrap()) {
         let mime = match path.extension().and_then(|x| x.to_str()) {
@@ -151,7 +152,7 @@ pub async fn dist_static(
         Ok(Response::builder()
             .status(StatusCode::OK)
             .header("Content-Type", mime)
-            .body(body::boxed(Full::from(y.into_owned())))
+            .body(Body::from(y.data.into_owned()))
             .unwrap())
     } else {
         Err(errors::DimError::NotFoundError)

@@ -13,7 +13,6 @@ use once_cell::sync::OnceCell;
 use serde::Deserialize;
 use serde::Serialize;
 
-
 #[derive(Serialize, Deserialize, Clone)]
 pub struct GlobalSettings {
     pub enable_ssl: bool,
@@ -60,7 +59,7 @@ impl Default for GlobalSettings {
     }
 }
 
-static GLOBAL_SETTINGS: Lazy<Mutex<GlobalSettings>> = Lazy::new(|| Default::default());
+static GLOBAL_SETTINGS: Lazy<Mutex<GlobalSettings>> = Lazy::new(Default::default);
 static SETTINGS_PATH: OnceCell<String> = OnceCell::new();
 
 pub fn get_global_settings() -> GlobalSettings {
@@ -76,6 +75,7 @@ pub fn init_global_settings(path: Option<String>) -> Result<(), Box<dyn Error>> 
     OpenOptions::new()
         .write(true)
         .create(true)
+        .truncate(true)
         .read(true)
         .open(path)?
         .read_to_string(&mut content)?;
@@ -103,7 +103,7 @@ pub fn set_global_settings(settings: GlobalSettings) -> Result<(), Box<dyn Error
 
     let settings = get_global_settings();
     File::create(path)?
-        .write(toml::to_string_pretty(&settings).unwrap().as_ref())
+        .write_all(toml::to_string_pretty(&settings).unwrap().as_ref())
         .unwrap();
 
     Ok(())

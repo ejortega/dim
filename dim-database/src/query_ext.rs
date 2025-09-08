@@ -1,4 +1,3 @@
-use sqlx::database::HasArguments;
 use sqlx::query::QueryAs;
 use sqlx::Database;
 use sqlx::Encode;
@@ -14,9 +13,7 @@ pub trait QueryExt<'a, DB: Database> {
         Vs: IntoIterator<Item = V>;
 }
 
-impl<'a, DB: Database, O> QueryExt<'a, DB>
-    for QueryAs<'a, DB, O, <DB as HasArguments<'a>>::Arguments>
-{
+impl<'a, DB: Database, O> QueryExt<'a, DB> for QueryAs<'a, DB, O, <DB as Database>::Arguments<'a>> {
     fn bind_all<Vs, V>(self, values: Vs) -> Self
     where
         V: Send + Encode<'a, DB> + Type<DB> + 'a,
