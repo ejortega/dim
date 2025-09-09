@@ -19,23 +19,18 @@ jobs:
     steps:
       - run: sudo apt-get update
       - run: sudo apt-get install -y libva-dev libva-drm2 libva2 sqlite3
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v5.0.0
 
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-          components: cargo
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
 
       - name: Build Docs
-        uses: actions-rs/cargo@v1
-        with:
-          command: doc
-          args: --verbose --workspace --release --no-deps
+        run: cargo doc --verbose --workspace --release --no-deps
 
       - name: Deploy 🚀
-        uses: JamesIves/github-pages-deploy-action@v4.3.3
+        uses: JamesIves/github-pages-deploy-action@v4.7.3
         with:
           branch: docs
           folder: target/doc

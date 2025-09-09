@@ -1,6 +1,6 @@
 name: Rust
 
-on: [push, pull_request, workflow_dispatch]
+on: [pull_request, workflow_dispatch]
 
 env:
   CARGO_TERM_COLOR: always
@@ -13,7 +13,7 @@ jobs:
     steps:
       - run: sudo apt-get update
       - run: sudo apt-get install -y libva-dev libva-drm2 libva2 sqlite3 ffmpeg
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v5.0.0
 
       # - name: Download UI artifacts
       #   uses: dawidd6/action-download-artifact@v2
@@ -25,28 +25,18 @@ jobs:
       #     path: ui/build
       #     repo: ${{github.repository}}
 
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-          components: cargo
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
 
-      - name: Download ffmpeg artifact
-        uses: dsaltares/fetch-gh-release-asset@master
-        with:
-          repo: "Dusk-Labs/ffmpeg-static"
-          version: "tags/ffmpeg-all-0.0.1"
-          file: "ffmpeg"
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Download ffprobe artifact
-        uses: dsaltares/fetch-gh-release-asset@master
-        with:
-          repo: "Dusk-Labs/ffmpeg-static"
-          version: "tags/ffmpeg-all-0.0.1"
-          file: "ffprobe"
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download ffmpeg + ffprobe
+        run: |
+          set -euxo pipefail
+          version="ffmpeg-all-0.0.1"
+          base="https://github.com/Dusk-Labs/ffmpeg-static/releases/download/${version}"
+          curl -fL "${base}/ffmpeg"  -o ffmpeg
+          curl -fL "${base}/ffprobe" -o ffprobe
 
       - name: Create release dir
         run: |
@@ -57,16 +47,10 @@ jobs:
           chmod +x release/utils/ffprobe
 
       - name: Test Dim
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --tests
+        run: cargo test --tests
 
       - name: Build Dim
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --verbose --release
+        run: cargo build --verbose --release
 
       - name: Copy dim binaries
         run: |
@@ -77,7 +61,7 @@ jobs:
         run: tar -zcvf release.tar.gz release
 
       - name: Save artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: release
           path: release.tar.gz
