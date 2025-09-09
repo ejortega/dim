@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["APP_USER_AGENT","TMDB_BASE_URL"],"enum":["TMDBClientRequestError"],"struct":["MetadataProviderOf","Movies","TMDBMetadataProvider","TvShows"]};
