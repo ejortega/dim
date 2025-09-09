@@ -125,7 +125,7 @@ impl CacheEviction {
         let cache_len = self.cache.len();
         let to_delete = cache_len / 20;
 
-        let mut rng = SmallRng::from_entropy();
+        let mut rng = SmallRng::from_os_rng();
 
         self.cache.retain(|_, v| {
             let size = if let Some(ref v) = v {
@@ -138,7 +138,7 @@ impl CacheEviction {
                 return true;
             }
 
-            if rng.gen_range(0..=cache_len) < to_delete {
+            if rng.random_range(0..=cache_len) < to_delete {
                 self.usage.fetch_sub(size, Ordering::Relaxed);
                 return false;
             }
