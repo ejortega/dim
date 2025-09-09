@@ -20,12 +20,12 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v5.0.0
+      - uses: actions/setup-node@v5.0.0
         with:
-          node-version: "16"
+          node-version: "18"
       - name: Cache node_modules
-        uses: actions/cache@v2
+        uses: actions/cache@v4.2.4
         env:
           cache-name: cache-node-modules
         with:
@@ -44,7 +44,7 @@ jobs:
       - name: Build webui
         run: yarn build
       - name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4.6.2
         with: 
           name: webui
           path: ui/build/
