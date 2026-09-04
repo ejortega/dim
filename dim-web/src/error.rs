@@ -39,7 +39,7 @@ impl From<dim_core::errors::StreamingErrors> for DimErrorWrapper {
 impl From<nightfall::error::NightfallError> for DimErrorWrapper {
     fn from(error: nightfall::error::NightfallError) -> Self {
         Self(DimError::StreamingError(
-            dim_core::errors::StreamingErrors::OtherNightfall(error),
+            dim_core::errors::StreamingErrors::OtherNightfall(Box::new(error)),
         ))
     }
 }

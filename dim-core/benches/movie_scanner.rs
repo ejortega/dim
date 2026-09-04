@@ -45,9 +45,9 @@ pub fn temp_dir<'a>(files: impl IntoIterator<Item = &'a str>) {
     }
 }
 
-pub fn temp_dir_symlink<'a>(
+pub fn temp_dir_symlink(
     files: impl Iterator<Item = impl AsRef<str>>,
-    target_file: &'a str,
+    target_file: &str,
 ) -> Vec<PathBuf> {
     let tempdir = PathBuf::from(env!("CARGO_TARGET_TMPDIR"));
 

@@ -16,7 +16,7 @@ pub use metadata_provider::{MetadataProviderOf, Movies, TMDBMetadataProvider, Tv
 use raw_client::{Cast, Genre, GenreList, SearchResponse, TMDBMediaObject, TvEpisodes, TvSeasons};
 
 #[derive(Debug, displaydoc::Display, Clone, thiserror::Error)]
-pub(self) enum TMDBClientRequestError {
+enum TMDBClientRequestError {
     /// The body of a response was not value UTF-8.
     InvalidUTF8Body,
     /// the error comes from reqwest.
@@ -240,6 +240,6 @@ mod tests {
     #[tokio::test]
     async fn deserialize_letterkenny() {
         let body = r#"{"id": 1234,"name": "letter kenny"}"#;
-        serde_json::from_str::<TMDBMediaObject>(&body).unwrap();
+        serde_json::from_str::<TMDBMediaObject>(body).unwrap();
     }
 }

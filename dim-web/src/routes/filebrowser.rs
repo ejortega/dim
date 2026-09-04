@@ -40,7 +40,6 @@ impl IntoResponse for AuthError {
 
 pub fn enumerate_directory<T: AsRef<std::path::Path>>(path: T) -> io::Result<Vec<String>> {
     let mut dirs: Vec<String> = fs::read_dir(path)?
-        .into_iter()
         .filter_map(|x| x.ok())
         .filter(|x| {
             !x.file_name()
@@ -76,15 +75,14 @@ pub async fn get_directory_structure(
 
     let path: PathBuf = match path {
         Some(Path(p)) => {
-            let path = if p.starts_with(path_prefix) {
+            if p.starts_with(path_prefix) {
                 PathBuf::from(p)
             } else {
                 let mut new_path = PathBuf::new();
                 new_path.push(path_prefix);
                 new_path.push(p);
                 new_path
-            };
-            path
+            }
         }
         None => PathBuf::from(path_prefix),
     };

@@ -83,6 +83,7 @@ pub fn init_global_settings(path: Option<String>) -> Result<(), Box<dyn Error>> 
     OpenOptions::new()
         .write(true)
         .create(true)
+        .truncate(true)
         .read(true)
         .open(path)?
         .read_to_string(&mut content)?;
@@ -105,7 +106,7 @@ pub fn set_global_settings(settings: GlobalSettings) -> Result<(), Box<dyn Error
     }
     let settings = get_global_settings();
     File::create(path)?
-        .write(toml::to_string_pretty(&settings).unwrap().as_ref())
+        .write_all(toml::to_string_pretty(&settings).unwrap().as_ref())
         .unwrap();
     Ok(())
 }

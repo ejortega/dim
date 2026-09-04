@@ -1,6 +1,6 @@
 use crate::user::UserID;
 use crate::DatabaseError;
-use std::path::PathBuf;
+use std::path::Path;
 
 #[derive(Debug, Clone, Default)]
 pub struct Asset {
@@ -70,7 +70,7 @@ impl Asset {
 
     pub async fn get_url_by_file(
         conn: &mut crate::Transaction<'_>,
-        path: &PathBuf,
+        path: &Path,
     ) -> Result<String, DatabaseError> {
         let cleaned_path: &str = &path.to_string_lossy();
         Ok(sqlx::query!(

@@ -183,9 +183,11 @@ pub async fn handle_websocket_session(
                 break;
             }
 
-            None = stream.next() => {
-                let _ = socket_tx.send(CtrlEvent::Forget { addr }).await;
-                break;
+            message = stream.next() => {
+                if message.is_none() {
+                    let _ = socket_tx.send(CtrlEvent::Forget { addr }).await;
+                    break;
+                }
             }
         }
     }

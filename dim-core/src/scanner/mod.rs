@@ -78,7 +78,7 @@ pub fn get_subfiles(paths: impl Iterator<Item = impl AsRef<Path>>) -> Vec<PathBu
                 f.path()
                     .extension()
                     .and_then(|e| e.to_str())
-                    .map_or(false, |e| SUPPORTED_EXTS.contains(&e))
+                    .is_some_and(|e| SUPPORTED_EXTS.contains(&e))
             })
             .map(|f| f.into_path())
             .collect();
@@ -104,11 +104,11 @@ pub fn parse_filenames(
         };
 
         let metas = IntoIterator::into_iter([
-            TorrentMetadata::from_str(&filename),
-            Anitomy::from_str(&filename),
-            CombinedExtractor::from_str(&filename),
+            TorrentMetadata::from_str(filename),
+            Anitomy::from_str(filename),
+            CombinedExtractor::from_str(filename),
         ])
-        .filter_map(|x| x)
+        .flatten()
         .collect::<Vec<_>>();
 
         if metas.is_empty() {
@@ -199,7 +199,7 @@ pub async fn insert_mediafiles(
 
     Ok(mediafiles
         .into_iter()
-        .zip(parsed.into_iter())
+        .zip(parsed)
         .map(|(mfile, (_, metadata))| WorkUnit(mfile, metadata))
         .collect())
 }
@@ -301,7 +301,7 @@ pub async fn start(
 
     let lib = Library::get_one(&mut tx_, library_id)
         .await
-        .map_err(|e| Error::LibraryNotFound(e))?;
+        .map_err(Error::LibraryNotFound)?;
 
     start_custom(
         conn,

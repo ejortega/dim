@@ -47,7 +47,7 @@ pub enum Error {
     /// File passed is non-unicode.
     NonUnicodeFile,
     /// Failed to extract media information with ffprobe: {0:?}
-    FfprobeError(#[serde(skip)] Arc<std::io::Error>),
+    Ffprobe(#[serde(skip)] Arc<std::io::Error>),
     /// Failed to write mediafile to the database: {0:?}
     InsertFailed(#[serde(skip)] DatabaseError),
     /// Failed to select written mediafile from the database: {0:?}

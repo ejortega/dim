@@ -83,10 +83,10 @@ impl IntoResponse for Error {
 }
 
 pub const API_KEY: &str = "38c372f5bc572c8aadde7a802638534e";
-pub const MOVIES_PROVIDER: Lazy<Arc<dyn ExternalQueryIntoShow>> =
-    Lazy::new(|| Arc::new(TMDBMetadataProvider::new(&API_KEY).movies()));
-pub const TV_PROVIDER: Lazy<Arc<dyn ExternalQueryIntoShow>> =
-    Lazy::new(|| Arc::new(TMDBMetadataProvider::new(&API_KEY).tv_shows()));
+pub static MOVIES_PROVIDER: Lazy<Arc<dyn ExternalQueryIntoShow>> =
+    Lazy::new(|| Arc::new(TMDBMetadataProvider::new(API_KEY).movies()));
+pub static TV_PROVIDER: Lazy<Arc<dyn ExternalQueryIntoShow>> =
+    Lazy::new(|| Arc::new(TMDBMetadataProvider::new(API_KEY).tv_shows()));
 
 /// Method mapped to `GET /api/v1/media/<id>` returns info about a media based on the id queried.
 /// This method can only be accessed by authenticated users.
@@ -162,26 +162,26 @@ pub async fn get_media_by_id(
                 // NOTE: When we get to the last episode of a tv show we want to return the last
                 // episode even if the client finished watching it.
                 let next_episode = ep.get_next_episode(&mut tx).await;
-                if (delta as f64 / duration as f64) > 0.90 && next_episode.is_ok() {
-                    let next_episode = next_episode.unwrap();
-                    let (delta, _duration) =
-                        Progress::get_progress_for_media(&mut tx, ep.id, user.id)
-                            .await
-                            .unwrap_or((0, 1));
+                match next_episode {
+                    Ok(next_episode) if (delta as f64 / duration as f64) > 0.90 => {
+                        let (delta, _duration) =
+                            Progress::get_progress_for_media(&mut tx, ep.id, user.id)
+                                .await
+                                .unwrap_or((0, 1));
 
-                    Some(json!({
-                        "progress": delta,
-                        "season": next_episode.get_season_number(&mut tx).await.unwrap_or(0),
-                        "episode": next_episode.episode,
-                        "play_btn_id": next_episode.id,
-                    }))
-                } else {
-                    Some(json!({
+                        Some(json!({
+                            "progress": delta,
+                            "season": next_episode.get_season_number(&mut tx).await.unwrap_or(0),
+                            "episode": next_episode.episode,
+                            "play_btn_id": next_episode.id,
+                        }))
+                    }
+                    _ => Some(json!({
                         "progress": delta,
                         "season": ep.get_season_number(&mut tx).await.unwrap_or(0),
                         "episode": ep.episode,
                         "play_btn_id": ep.id,
-                    }))
+                    })),
                 }
             } else {
                 let ep = Episode::get_first_for_show(&mut tx, id).await?;
@@ -451,8 +451,8 @@ pub async fn tmdb_search(Query(params): Query<TmdbSearchParams>) -> Result<Respo
     };
 
     let provider = match media_type {
-        MediaType::Movie => (*MOVIES_PROVIDER).clone(),
-        MediaType::Tv => (*TV_PROVIDER).clone(),
+        MediaType::Movie => Arc::clone(&MOVIES_PROVIDER),
+        MediaType::Tv => Arc::clone(&TV_PROVIDER),
         _ => return Err(Error::InvalidMediaType),
     };
 
@@ -535,8 +535,8 @@ pub async fn rematch_media_by_id(
     };
 
     let provider: Arc<dyn ExternalQueryIntoShow> = match media_type {
-        MediaType::Movie => (*MOVIES_PROVIDER).clone(),
-        MediaType::Tv => (*TV_PROVIDER).clone(),
+        MediaType::Movie => Arc::clone(&MOVIES_PROVIDER),
+        MediaType::Tv => Arc::clone(&TV_PROVIDER),
         _ => return Err(Error::InvalidMediaType),
     };
 

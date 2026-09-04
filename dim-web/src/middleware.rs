@@ -20,13 +20,13 @@ pub async fn verify_cookie_token<B>(
                 }
             };
             let id = dim_database::user::Login::verify_cookie(token.to_str().unwrap().to_string())
-                .map_err(|e| DimError::CookieError(e))
-                .map_err(|e| DimErrorWrapper(e))?;
+                .map_err(DimError::CookieError)
+                .map_err(DimErrorWrapper)?;
 
             let current_user = dim_database::user::User::get_by_id(&mut tx, id)
                 .await
                 .map_err(|_| DimError::UserNotFound)
-                .map_err(|e| DimErrorWrapper(e))?;
+                .map_err(DimErrorWrapper)?;
 
             req.extensions_mut().insert(current_user);
             Ok(next.run(req).await)

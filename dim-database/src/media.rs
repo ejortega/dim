@@ -318,9 +318,9 @@ impl Media {
     }
 }
 
-impl Into<super::tv::TVShow> for Media {
-    fn into(self) -> super::tv::TVShow {
-        super::tv::TVShow { id: self.id }
+impl From<Media> for super::tv::TVShow {
+    fn from(val: Media) -> Self {
+        super::tv::TVShow { id: val.id }
     }
 }
 

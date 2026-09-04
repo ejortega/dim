@@ -92,9 +92,9 @@ pub struct Avc1Level {
     pub max_bitrate: u64,
 }
 
-impl ToString for Avc1Level {
-    fn to_string(&self) -> String {
-        format!("avc1.6400{:x}", self.level)
+impl std::fmt::Display for Avc1Level {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "avc1.6400{:x}", self.level)
     }
 }
 

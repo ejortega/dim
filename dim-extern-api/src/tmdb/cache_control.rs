@@ -64,7 +64,7 @@ impl CacheValue {
 
     pub fn mem_size(&self) -> usize {
         let body_size = match self {
-            Self::Body { text, .. } => text.as_bytes().len(),
+            Self::Body { text, .. } => text.len(),
             _ => 0,
         };
 
@@ -184,7 +184,7 @@ mod tests {
 
             cache.insert(
                 CacheKey::Search {
-                    title: format!("{i}").into(),
+                    title: format!("{i}"),
                     year: None,
                 },
                 Some(value),

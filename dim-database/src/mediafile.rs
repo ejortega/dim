@@ -5,7 +5,7 @@ use crate::DatabaseError;
 use itertools::intersperse;
 use serde::Deserialize;
 use serde::Serialize;
-use std::iter::repeat;
+use std::iter::repeat_n;
 
 /// MediaFile struct which represents a media file on the filesystem. This struct holds some basic
 /// information which the video player on the front end might require.
@@ -161,7 +161,7 @@ impl MediaFile {
         conn: &mut crate::Transaction<'_>,
         ids: &[i64],
     ) -> Result<Vec<Self>, DatabaseError> {
-        let placeholders = intersperse(repeat("?").take(ids.len()), ",").collect::<String>();
+        let placeholders = intersperse(repeat_n("?", ids.len()), ",").collect::<String>();
         let query = format!("SELECT * FROM mediafile WHERE id IN ({placeholders})");
 
         Ok(sqlx::query_as::<_, MediaFile>(&query)
@@ -384,12 +384,12 @@ impl UpdateMediaFile {
     }
 }
 
-impl Into<Media> for MediaFile {
-    fn into(self) -> Media {
+impl From<MediaFile> for Media {
+    fn from(val: MediaFile) -> Self {
         Media {
-            id: self.id,
-            library_id: self.library_id,
-            name: self.raw_name,
+            id: val.id,
+            library_id: val.library_id,
+            name: val.raw_name,
             ..Default::default()
         }
     }
