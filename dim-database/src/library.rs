@@ -6,10 +6,11 @@ use std::fmt;
 
 /// Enum represents a media type and can be used on a library or on a media.
 /// When returned in a http response, the fields are lowercase.
-#[derive(Copy, Serialize, Debug, Clone, Eq, PartialEq, Deserialize, Hash, sqlx::Type)]
+#[derive(Default, Copy, Serialize, Debug, Clone, Eq, PartialEq, Deserialize, Hash, sqlx::Type)]
 #[serde(rename_all = "lowercase")]
 #[sqlx(rename_all = "lowercase")]
 pub enum MediaType {
+    #[default]
     Movie,
     Tv,
     Episode,
@@ -47,12 +48,6 @@ impl TryFrom<String> for MediaType {
 
     fn try_from(s: String) -> Result<Self, Self::Error> {
         s.as_str().try_into()
-    }
-}
-
-impl Default for MediaType {
-    fn default() -> Self {
-        Self::Movie
     }
 }
 

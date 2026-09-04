@@ -96,7 +96,7 @@ pub async fn get_conn_memory() -> sqlx::Result<crate::DbConnection> {
     let connection: sqlx::pool::PoolConnection<sqlx::Sqlite> = pool.acquire().await?;
     let rw = connection.detach();
     let pool = rw_pool::SqlitePool::new(rw, pool);
-    let _ = run_migrations(&pool).await?;
+    run_migrations(&pool).await?;
 
     Ok(pool)
 }
@@ -147,7 +147,7 @@ pub async fn get_conn_logged() -> sqlx::Result<DbConnection> {
 
     info!("Creating new database connection");
 
-    if !MIGRATIONS_FLAG.load(Ordering::SeqCst) && dbg!(run_migrations(&conn).await).is_ok() {
+    if !MIGRATIONS_FLAG.load(Ordering::SeqCst) && dbg!(run_migrations(conn).await).is_ok() {
         MIGRATIONS_FLAG.store(true, Ordering::SeqCst);
     }
 

@@ -163,7 +163,7 @@ async fn test_multiple_instances() {
         insert_futures.push(async move {
             let chunk_len = chunk.len();
             let result = addr
-                .send(InsertBatch(chunk.into_iter().cloned().collect()))
+                .send(InsertBatch(chunk.to_vec()))
                 .await
                 .expect("Addr got dropped")
                 .expect("Failed to insert batch");

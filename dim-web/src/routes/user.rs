@@ -81,7 +81,7 @@ pub struct ChangePasswordParams {
 ///
 /// # Errors
 /// * [`InvalidCredentials`] - The provided `old_password` is incorrect or the authentication token
-/// is invalid.
+///   is invalid.
 ///
 /// [`InvalidCredentials`]: AuthError::InvalidCredentials
 pub async fn change_password(
@@ -139,7 +139,7 @@ pub struct DeleteParams {
 ///
 /// # Errors
 /// * [`InvalidCredentials`] - The provided `old_password` is incorrect or the authentication token
-/// is invalid.
+///   is invalid.
 ///
 /// [`InvalidCredentials`]: AuthError::InvalidCredentials
 pub async fn delete(
@@ -228,8 +228,8 @@ pub async fn change_username(
 ///
 /// # Errors
 /// * [`UploadFailed`] - No file has been uploaded correctly or the `file` form field has not been
+///   found.
 /// * [`UnsupportedFile`] - The file uploaded is not supported.
-/// found.
 ///
 /// [`UploadFailed`]: AuthError::UploadFailed
 /// [`UnsupportedFile`]: AuthError::UnsupportedFile
@@ -280,11 +280,11 @@ pub async fn process_part(
 
     let contents = p.bytes().await.map_err(|_| AuthError::UploadFailed)?;
 
-    let local_file = format!("{}.{}", Uuid::new_v4().to_string(), file_ext);
+    let local_file = format!("{}.{}", Uuid::new_v4(), file_ext);
     let local_path = format!(
         "{}/{}",
         dim_core::core::METADATA_PATH.get().unwrap(),
-        &local_file
+        local_file
     );
 
     tokio::fs::write(&local_path, contents)

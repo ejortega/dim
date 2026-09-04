@@ -87,9 +87,7 @@ pub async fn get_mediafile_info(
     Path(id): Path<i64>,
 ) -> Result<impl IntoResponse, Error> {
     let mut tx = conn.read().begin().await.map_err(DatabaseError::from)?;
-    let mediafile = MediaFile::get_one(&mut tx, id)
-        .await
-        .map_err(DatabaseError::from)?;
+    let mediafile = MediaFile::get_one(&mut tx, id).await?;
 
     Ok(Json(&json!({
         "id": mediafile.id,
@@ -107,7 +105,7 @@ pub async fn get_mediafile_info(
 /// * `conn` - database connection
 /// * `log` - logger
 /// * `event_tx` - websocket channel over which we dispatch a event notifying other clients of the
-/// new metadata
+///   new metadata
 ///
 /// * `mediafiles` - ids of the orphan mediafiles we want to rematch
 /// * `tmdb_id` - the tmdb id of the proper metadata we want to fetch for the media
@@ -116,7 +114,7 @@ pub async fn rematch_mediafile(
     Json(route_args): Json<RouteArgs>,
 ) -> Result<impl IntoResponse, Error> {
     if route_args.mediafiles.is_empty() {
-        return Err(Error::NoMediafiles.into());
+        return Err(Error::NoMediafiles);
     }
 
     let Ok(media_type): Result<MediaType, ()> = route_args.media_type.to_lowercase().try_into()
@@ -128,8 +126,8 @@ pub async fn rematch_mediafile(
 
     // FIXME: impl FromStr for MediaType
     let provider: Arc<dyn ExternalQueryIntoShow> = match media_type {
-        MediaType::Movie => (*MOVIES_PROVIDER).clone(),
-        MediaType::Tv => (*TV_PROVIDER).clone(),
+        MediaType::Movie => Arc::clone(&MOVIES_PROVIDER),
+        MediaType::Tv => Arc::clone(&TV_PROVIDER),
         _ => return Err(Error::InvalidMediaType),
     };
 
@@ -141,9 +139,7 @@ pub async fn rematch_mediafile(
 
     info!(?media_type, route_args.mediafiles = ?&route_args.mediafiles, "Rematching mediafiles");
 
-    let mediafiles = MediaFile::get_many(&mut tx, &route_args.mediafiles)
-        .await
-        .map_err(DatabaseError::from)?;
+    let mediafiles = MediaFile::get_many(&mut tx, &route_args.mediafiles).await?;
 
     provider
         .search_by_id(&route_args.tmdb_id)

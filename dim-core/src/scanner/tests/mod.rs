@@ -32,9 +32,9 @@ pub fn temp_dir<'a>(files: impl IntoIterator<Item = &'a str>) -> tempfile::TempD
 }
 
 #[track_caller]
-pub fn temp_dir_symlink<'a>(
+pub fn temp_dir_symlink(
     files: impl Iterator<Item = impl AsRef<str>>,
-    target_file: &'a str,
+    target_file: &str,
 ) -> (TempDir, Vec<PathBuf>) {
     let tempdir = tempfile::Builder::new()
         .prefix("tmp")

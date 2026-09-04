@@ -93,7 +93,7 @@ pub enum StreamingErrors {
     /// The video profile requested doesnt exist
     InvalidProfile,
     /// A error with nightfall has occured
-    OtherNightfall(NightfallError),
+    OtherNightfall(Box<NightfallError>),
     /// It appears that the file is corrupted
     FileIsCorrupt,
     /// Invalid request
@@ -120,7 +120,7 @@ impl From<sqlx::Error> for StreamingErrors {
 
 impl From<NightfallError> for StreamingErrors {
     fn from(e: NightfallError) -> Self {
-        Self::OtherNightfall(e)
+        Self::OtherNightfall(Box::new(e))
     }
 }
 

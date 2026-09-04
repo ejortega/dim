@@ -62,7 +62,7 @@ impl From<TMDBMediaObject> for ExternalMedia {
                 .map(|genre| genre.name)
                 .collect(),
             rating: media.vote_average,
-            duration: media.runtime.map(|n| Duration::from_secs(n)),
+            duration: media.runtime.map(Duration::from_secs),
         }
     }
 }
@@ -112,6 +112,7 @@ impl From<CastActor> for ExternalActor {
 
 #[derive(Deserialize, Debug)]
 pub struct Cast {
+    #[allow(dead_code)]
     pub id: u64,
     pub cast: Vec<CastActor>,
 }
@@ -119,6 +120,7 @@ pub struct Cast {
 #[derive(Deserialize, Debug)]
 pub struct TmdbError {
     pub status_message: String,
+    #[allow(dead_code)]
     pub status_code: u64,
 }
 
@@ -254,7 +256,7 @@ impl TMDBClient {
                     .map_err(TMDBClientRequestError::reqwest)
                 {
                     Ok(x) => x,
-                    Err(err) => return Err(err).into(),
+                    Err(err) => return Err(err),
                 };
 
                 let status = response.status();
@@ -265,7 +267,7 @@ impl TMDBClient {
                     .map_err(TMDBClientRequestError::reqwest)
                 {
                     Ok(x) => x,
-                    Err(err) => return Err(err).into(),
+                    Err(err) => return Err(err),
                 };
 
                 let body = std::str::from_utf8(&body)
@@ -276,8 +278,7 @@ impl TMDBClient {
                     return Err(TMDBClientRequestError::NonOkResponse {
                         body: body.unwrap_or_default(),
                         status,
-                    })
-                    .into();
+                    });
                 }
 
                 match body {

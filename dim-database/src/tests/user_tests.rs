@@ -94,7 +94,7 @@ async fn test_invites() {
 
     let invite = user::Login::new_invite(&mut tx).await.unwrap();
     let result = user::Login::get_all_invites(&mut tx).await.unwrap();
-    assert_eq!(&result, &[invite.clone()]);
+    assert_eq!(&result, std::slice::from_ref(&invite));
 
     let result = user::Login {
         invite_token: Some(invite.clone()),
@@ -138,7 +138,7 @@ async fn test_invites() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test_cookie_encoding() {
-    let _ = set_key_fallible(generate_key());
+    set_key_fallible(generate_key());
     let mut conn = get_conn_memory().await.unwrap().writer().lock_owned().await;
     let mut tx = write_tx(&mut conn).await.unwrap();
 
@@ -152,7 +152,7 @@ async fn test_cookie_encoding() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test_invalid_cookie() {
-    let _ = set_key_fallible(generate_key());
+    set_key_fallible(generate_key());
     let res = Login::verify_cookie(String::new());
     assert!(res.is_err());
     let res = Login::verify_cookie(String::from("ansd9uid89as"));

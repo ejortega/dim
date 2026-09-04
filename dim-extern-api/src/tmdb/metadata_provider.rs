@@ -30,7 +30,7 @@ use super::*;
 /// How long items should be cached for. Defaults to 12 hours.
 const CACHED_ITEM_TTL: Duration = Duration::from_secs(60 * 60 * 12);
 /// How many requests we can send per second.
-const REQ_QUOTA: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(128) };
+const REQ_QUOTA: NonZeroU32 = NonZeroU32::new(128).unwrap();
 
 type Governor = RateLimiter<NotKeyed, InMemoryState, DefaultClock, NoOpMiddleware>;
 
@@ -208,7 +208,7 @@ impl TMDBMetadataProvider {
                     // if an error was yeeted back during the request then purge the cache entry.
                     Err(error) => {
                         // clear the cache for values that could not be populated.
-                        let _ = self.cache.remove(&key);
+                        let _ = self.cache.remove(key);
                         Err(error.into())
                     }
                 }
@@ -510,7 +510,7 @@ where
 }
 
 impl IntoQueryShow for MetadataProviderOf<TvShows> {
-    fn as_query_show<'a>(&'a self) -> Option<&'a dyn ExternalQueryShow> {
+    fn as_query_show(&self) -> Option<&dyn ExternalQueryShow> {
         Some(self)
     }
 
@@ -520,7 +520,7 @@ impl IntoQueryShow for MetadataProviderOf<TvShows> {
 }
 
 impl IntoQueryShow for MetadataProviderOf<Movies> {
-    fn as_query_show<'a>(&'a self) -> Option<&'a dyn ExternalQueryShow> {
+    fn as_query_show(&self) -> Option<&dyn ExternalQueryShow> {
         None
     }
 
@@ -537,7 +537,7 @@ impl ExternalQueryShow for MetadataProviderOf<TvShows> {
     #[instrument]
     async fn seasons_for_id(&self, external_id: &str) -> QueryResult<Vec<ExternalSeason>> {
         let mut seasons = self.provider.seasons_by_id(external_id).await?;
-        seasons.sort_by(|a, b| a.season_number.cmp(&b.season_number));
+        seasons.sort_by_key(|a| a.season_number);
 
         Ok(seasons)
     }
@@ -553,7 +553,7 @@ impl ExternalQueryShow for MetadataProviderOf<TvShows> {
             .episodes_by_id(external_id, season_number)
             .await?;
 
-        episodes.sort_by(|a, b| a.episode_number.cmp(&b.episode_number));
+        episodes.sort_by_key(|a| a.episode_number);
 
         Ok(episodes)
     }

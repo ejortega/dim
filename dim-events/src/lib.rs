@@ -16,9 +16,10 @@ pub struct Message {
     pub event_type: PushEventType,
 }
 
-impl ToString for Message {
-    fn to_string(&self) -> String {
-        serde_json::to_string(&self).unwrap()
+impl std::fmt::Display for Message {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let json = serde_json::to_string(self).map_err(|_| std::fmt::Error)?;
+        f.write_str(&json)
     }
 }
 
